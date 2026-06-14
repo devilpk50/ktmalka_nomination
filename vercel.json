@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "ktmalka-nomination",
   "builds": [
     {
       "src": "**/*",
