@@ -15,6 +15,8 @@ module.exports = async (req, res) => {
             'image/jpeg',
             'image/png',
             'image/webp',
+            'image/heic',
+            'image/heif',
             'application/pdf'
           ],
           tokenPayload: JSON.stringify({}),

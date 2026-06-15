@@ -560,6 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             const blob = await vercelBlobUpload(uniqueFilename, file, {
                                 access: 'public',
                                 handleUploadUrl: '/api/upload',
+                                multipart: false, // Force standard POST to bypass iOS Safari ReadableStream bugs
                                 onUploadProgress(progressEvent) {
                                     fileNameSpan.textContent = `Uploading... ${Math.round(progressEvent.percentage)}%`;
                                     fileNameSpan.style.color = '#3b82f6';
