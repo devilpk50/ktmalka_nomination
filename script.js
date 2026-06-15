@@ -1,4 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
+    let activeUploadsCount = 0;
+    window.uploadedUrls = {};
+
+    function disableNavButtons(disable) {
+        document.querySelectorAll('.next-step, .prev-step, button[type="submit"]').forEach(btn => {
+            btn.disabled = disable;
+            if (disable) {
+                btn.style.opacity = '0.6';
+                btn.style.cursor = 'not-allowed';
+            } else {
+                btn.style.opacity = '';
+                btn.style.cursor = '';
+            }
+        });
+    }
+
     function updateTenureDisplays() {
         const savedTenure = localStorage.getItem('leoNominationTenure') || 'L.Y. 2025/26';
         
@@ -498,11 +514,53 @@ document.addEventListener('DOMContentLoaded', () => {
                 const err = validateFile(input, allowedTypes, label);
                 if (err) {
                     showError(fieldId, err);
+                    window.uploadedUrls[fieldId] = '';
+                } else {
+                    // Upload file immediately
+                    (async () => {
+                        try {
+                            activeUploadsCount++;
+                            disableNavButtons(true);
+                            
+                            fileNameSpan.textContent = `Preparing upload...`;
+                            fileNameSpan.style.color = '#3b82f6';
+                            
+                            const module = await import('https://esm.sh/@vercel/blob/client');
+                            const uploadHelper = module.upload;
+                            
+                            const uniqueFilename = `${Date.now()}_${fieldId}_${file.name}`;
+                            
+                            const blob = await uploadHelper(uniqueFilename, file, {
+                                access: 'public',
+                                handleUploadUrl: '/api/upload',
+                                onUploadProgress(progressEvent) {
+                                    fileNameSpan.textContent = `Uploading... ${Math.round(progressEvent.percentage)}%`;
+                                    fileNameSpan.style.color = '#3b82f6';
+                                }
+                            });
+                            
+                            window.uploadedUrls[fieldId] = blob.url;
+                            fileNameSpan.textContent = `✓ Uploaded: ${file.name}`;
+                            fileNameSpan.style.color = '#10b981';
+                        } catch (err) {
+                            console.error('File upload failed:', err);
+                            window.uploadedUrls[fieldId] = '';
+                            fileNameSpan.textContent = `✗ Upload failed: ${file.name}`;
+                            fileNameSpan.style.color = '#ef4444';
+                            showError(fieldId, 'Failed to upload file to storage database.');
+                        } finally {
+                            activeUploadsCount--;
+                            if (activeUploadsCount === 0) {
+                                disableNavButtons(false);
+                            }
+                        }
+                    })();
                 }
             } else {
                 fileNameSpan.textContent = 'No file chosen';
                 fileNameSpan.style.color = '#64748b';
                 fileNameSpan.style.fontWeight = 'normal';
+                window.uploadedUrls[fieldId] = '';
 
                 if (input.required) {
                     showError(fieldId, `${label} is required.`);
@@ -956,21 +1014,26 @@ document.addEventListener('DOMContentLoaded', () => {
             // Validate Required Documents (File uploads)
             const photoErr = validateFile(document.getElementById('formalPhoto'), ALLOWED_IMAGE_TYPES, 'Formal Photo');
             if (photoErr) { showError('formalPhoto', photoErr); stepValid = false; }
+            else if (!window.uploadedUrls['formalPhoto']) { showError('formalPhoto', 'Formal Photo upload failed or is still in progress.'); stepValid = false; }
 
             const sigErr = validateFile(document.getElementById('candidateSignature'), ALLOWED_IMAGE_TYPES, 'Candidate Signature');
             if (sigErr) { showError('candidateSignature', sigErr); stepValid = false; }
+            else if (!window.uploadedUrls['candidateSignature']) { showError('candidateSignature', 'Candidate Signature upload failed or is still in progress.'); stepValid = false; }
 
             const citizenErr = validateFile(document.getElementById('citizenship'), ALLOWED_DOC_TYPES, 'Citizenship document');
             if (citizenErr) { showError('citizenship', citizenErr); stepValid = false; }
+            else if (!window.uploadedUrls['citizenship']) { showError('citizenship', 'Citizenship document upload failed or is still in progress.'); stepValid = false; }
 
             const coverErr = validateFile(document.getElementById('coverLetterFile'), ALLOWED_DOC_TYPES, 'Cover Letter File');
             if (coverErr) { showError('coverLetterFile', coverErr); stepValid = false; }
+            else if (!window.uploadedUrls['coverLetterFile']) { showError('coverLetterFile', 'Cover Letter File upload failed or is still in progress.'); stepValid = false; }
 
             const duesContainer = document.getElementById('duesReceiptContainer');
             const duesInput     = document.getElementById('duesReceipt');
             if (duesContainer && duesContainer.style.display !== 'none' && duesInput.required) {
                 const duesErr = validateFile(duesInput, ALLOWED_DOC_TYPES, 'Club dues receipt');
                 if (duesErr) { showError('duesReceipt', duesErr); stepValid = false; }
+                else if (!window.uploadedUrls['duesReceipt']) { showError('duesReceipt', 'Club dues receipt upload failed or is still in progress.'); stepValid = false; }
             }
         } else if (stepNumber === 5) {
             clearError('nominationReceipt');
@@ -982,6 +1045,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (nominationContainer && nominationInput.required) {
                 const nominationErr = validateFile(nominationInput, ALLOWED_DOC_TYPES, 'Nomination Fee Paid Receipt');
                 if (nominationErr) { showError('nominationReceipt', nominationErr); stepValid = false; }
+                else if (!window.uploadedUrls['nominationReceipt']) { showError('nominationReceipt', 'Nomination Fee Paid Receipt upload failed or is still in progress.'); stepValid = false; }
             }
 
             // Validate Transaction Code
@@ -1070,81 +1134,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Disable confirm button to prevent double-submit
         confirmSubmitBtn.disabled = true;
-        confirmSubmitBtn.textContent = 'Preparing files...';
-
-        // Dynamic import of Vercel Blob client-side SDK from CDN
-        let uploadHelper;
-        try {
-            const module = await import('https://esm.sh/@vercel/blob/client');
-            uploadHelper = module.upload;
-        } catch (err) {
-            console.error('Failed to load Vercel Blob client library:', err);
-            alert('File upload library failed to load. Please check your internet connection and try again.');
-            confirmSubmitBtn.disabled = false;
-            confirmSubmitBtn.textContent = 'Confirm & Submit';
-            return;
-        }
-
-        const uploadPromises = [];
-        const filesToUpload = [
-            { field: 'coverLetterFile', key: 'coverLetterUrl' },
-            { field: 'formalPhoto', key: 'formalPhotoUrl' },
-            { field: 'citizenship', key: 'citizenshipUrl' },
-            { field: 'duesReceipt', key: 'duesReceiptUrl' },
-            { field: 'candidateSignature', key: 'signatureUrl' },
-            { field: 'nominationReceipt', key: 'nominationReceiptUrl' }
-        ];
-
-        confirmSubmitBtn.textContent = 'Uploading files...';
-
-        for (const item of filesToUpload) {
-            const input = document.getElementById(item.field);
-            if (input && input.files && input.files[0]) {
-                const file = input.files[0];
-                const filename = `${pendingFormData.id}_${item.field}_${file.name}`;
-                const span = input.nextElementSibling;
-                
-                const uploadPromise = (async () => {
-                    try {
-                        const blob = await uploadHelper(filename, file, {
-                            access: 'public',
-                            handleUploadUrl: '/api/upload',
-                            onUploadProgress(progressEvent) {
-                                if (span) {
-                                    span.textContent = `Uploading... ${Math.round(progressEvent.percentage)}%`;
-                                    span.style.color = '#3b82f6'; // Blue progress text
-                                }
-                            }
-                        });
-                        pendingFormData[item.key] = blob.url;
-                        if (span) {
-                            span.textContent = `✓ Uploaded: ${file.name}`;
-                            span.style.color = '#10b981'; // Green success text
-                        }
-                    } catch (err) {
-                        console.error(`Failed to upload ${file.name} to Vercel Blob:`, err);
-                        if (span) {
-                            span.textContent = `✗ Upload failed: ${file.name}`;
-                            span.style.color = '#ef4444'; // Red error text
-                        }
-                        throw new Error(`Upload failed for ${file.name}`);
-                    }
-                })();
-                uploadPromises.push(uploadPromise);
-            } else {
-                pendingFormData[item.key] = '';
-            }
-        }
-
-        try {
-            await Promise.all(uploadPromises);
-        } catch (err) {
-            alert(err.message || 'File upload failed. Please try again.');
-            confirmSubmitBtn.disabled = false;
-            confirmSubmitBtn.textContent = 'Confirm & Submit';
-            return;
-        }
-
         confirmSubmitBtn.textContent = 'Submitting form...';
 
         try {
@@ -1165,6 +1154,9 @@ document.addEventListener('DOMContentLoaded', () => {
             let submissions = JSON.parse(localStorage.getItem('leoNominations') || '[]');
             submissions.push(pendingFormData);
             localStorage.setItem('leoNominations', JSON.stringify(submissions));
+
+            // Reset uploaded URLs state
+            window.uploadedUrls = {};
 
         } catch (err) {
             console.error('Submission error:', err);
@@ -1260,16 +1252,24 @@ document.addEventListener('DOMContentLoaded', () => {
             transactionCode:  transactionCodeInput ? sanitize(transactionCodeInput.value.trim()) : 'N/A',
             coverLetter:      document.getElementById('coverLetterFile').files[0] ? document.getElementById('coverLetterFile').files[0].name : 'N/A',
             coverLetterName:  document.getElementById('coverLetterFile').files[0] ? document.getElementById('coverLetterFile').files[0].name : 'N/A',
+            coverLetterUrl:   window.uploadedUrls['coverLetterFile'] || '',
             pastExperience:   sanitize(document.getElementById('pastExperience').value.trim()),
             areasOfInterest:  sanitize(document.getElementById('areasOfInterest').value.trim()),
             futurePlans:      sanitize(document.getElementById('futurePlans').value.trim()),
             formalPhotoName:  document.getElementById('formalPhoto').files[0] ? document.getElementById('formalPhoto').files[0].name : 'N/A',
+            formalPhotoUrl:   window.uploadedUrls['formalPhoto'] || '',
             signatureName:    document.getElementById('candidateSignature').files[0] ? document.getElementById('candidateSignature').files[0].name : 'N/A',
+            signatureUrl:     window.uploadedUrls['candidateSignature'] || '',
             citizenshipName:  document.getElementById('citizenship').files[0] ? document.getElementById('citizenship').files[0].name : 'N/A',
+            citizenshipUrl:   window.uploadedUrls['citizenship'] || '',
             duesReceiptName:  (hasLeoId === 'yes' && typeof memberData !== 'undefined' && memberData[leoIdInput.value.trim()] && memberData[leoIdInput.value.trim()].duesPaid)
                 ? 'Paid (Automatically Verified)'
                 : (document.getElementById('duesReceipt').files[0] ? document.getElementById('duesReceipt').files[0].name : 'N/A'),
+            duesReceiptUrl:   (hasLeoId === 'yes' && typeof memberData !== 'undefined' && memberData[leoIdInput.value.trim()] && memberData[leoIdInput.value.trim()].duesPaid)
+                ? 'Paid (Automatically Verified)'
+                : (window.uploadedUrls['duesReceipt'] || ''),
             nominationReceiptName: document.getElementById('nominationReceipt').files[0] ? document.getElementById('nominationReceipt').files[0].name : 'N/A',
+            nominationReceiptUrl: window.uploadedUrls['nominationReceipt'] || '',
             acceptedTerms:    true,
             status:           'Pending'
         };
