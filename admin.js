@@ -823,6 +823,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const positionFilter = document.getElementById('positionFilter');
     const statusFilter = document.getElementById('statusFilter');
     const tenureFilter = document.getElementById('tenureFilter');
+    const sortSelect = document.getElementById('sortSelect');
     const exportCsvBtn = document.getElementById('exportCsvBtn');
 
     // Details Modal elements
@@ -897,6 +898,34 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function sortSubmissions(list) {
+        if (!sortSelect) {
+            return list;
+        }
+
+        const option = sortSelect.value || 'newest';
+        const sorted = list.slice();
+
+        const getTimestamp = (item) => {
+            const time = new Date(item.date).getTime();
+            return Number.isFinite(time) ? time : 0;
+        };
+
+        if (option === 'oldest') {
+            return sorted.sort((a, b) => getTimestamp(a) - getTimestamp(b));
+        }
+
+        if (option === 'name-asc') {
+            return sorted.sort((a, b) => a.fullName.localeCompare(b.fullName, undefined, { sensitivity: 'base' }));
+        }
+
+        if (option === 'name-desc') {
+            return sorted.sort((a, b) => b.fullName.localeCompare(a.fullName, undefined, { sensitivity: 'base' }));
+        }
+
+        return sorted.sort((a, b) => getTimestamp(b) - getTimestamp(a));
+    }
+
     function updateStats() {
         const selectedTenure = tenureFilter ? tenureFilter.value : '';
         const filteredSubmissions = submissions.filter(sub => {
@@ -913,14 +942,14 @@ document.addEventListener('DOMContentLoaded', () => {
         tableBody.innerHTML = '';
 
         const filtered = getFilteredSubmissions();
+        const sorted = sortSubmissions(filtered);
 
-        if (filtered.length === 0) {
+        if (sorted.length === 0) {
             tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#64748b;">No matching submissions found.</td></tr>';
             return;
         }
 
-        // Reverse to show newest first
-        filtered.slice().reverse().forEach(sub => {
+        sorted.forEach(sub => {
             const date = new Date(sub.date).toLocaleDateString();
             const contact = sub.emailId !== 'N/A' ? sub.emailId : sub.contactNo;
             const leoIdDisplay = sub.hasLeoId === 'yes' ? sub.leoId : '<span style="color:#94a3b8">None</span>';
@@ -1314,6 +1343,9 @@ document.addEventListener('DOMContentLoaded', () => {
     searchInput.addEventListener('input', renderTable);
     positionFilter.addEventListener('change', renderTable);
     statusFilter.addEventListener('change', renderTable);
+    if (sortSelect) {
+        sortSelect.addEventListener('change', renderTable);
+    }
     if (tenureFilter) {
         tenureFilter.addEventListener('change', () => {
             updateStats();
