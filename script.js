@@ -665,7 +665,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Handle Leo ID verification
-    leoIdInput.addEventListener('input', async (e) => {
+    leoIdInput.addEventListener('input', (e) => {
         const id = e.target.value.trim();
         
         if (id.length === 0) {
@@ -681,29 +681,37 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Check if already registered/submitted
+        // Check if already registered/submitted locally
         const submissions = JSON.parse(localStorage.getItem('leoNominations') || '[]');
-        let isDuplicate = submissions.some(sub => sub.hasLeoId === 'yes' && sub.leoId === id);
+        const isDuplicateLocal = submissions.some(sub => sub.hasLeoId === 'yes' && sub.leoId === id);
         
-        // If not found locally, check the server
-        if (!isDuplicate) {
-            try {
-                idVerificationMsg.textContent = 'Checking...';
-                idVerificationMsg.className = 'verification-msg';
-                const res = await fetch(`/api/check?leoId=${id}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.submitted) isDuplicate = true;
-                }
-            } catch (err) {
-                console.error('Error checking duplicate on server:', err);
-            }
+        if (isDuplicateLocal) {
+            handleDuplicateError();
+            return;
         }
 
-        // If the user typed something else while we were fetching, ignore this result
-        if (leoIdInput.value.trim() !== id) return;
-        
-        if (isDuplicate) {
+        // Check backend asynchronously
+        window.isCheckingLeoId = true;
+        fetch('/api/nominations?checkLeoId=' + id)
+            .then(res => res.json())
+            .then(data => {
+                if (data.hasSubmitted) {
+                    window.serverDuplicateLeoId = id;
+                    if (leoIdInput.value.trim() === id) {
+                        handleDuplicateError();
+                    }
+                } else {
+                    if (window.serverDuplicateLeoId === id) {
+                        window.serverDuplicateLeoId = null;
+                    }
+                }
+            })
+            .catch(err => console.error('Error checking duplicate:', err))
+            .finally(() => {
+                if (leoIdInput.value.trim() === id) window.isCheckingLeoId = false;
+            });
+
+        function handleDuplicateError() {
             idVerificationMsg.textContent = 'Member has already submitted a nomination.';
             idVerificationMsg.className = 'verification-msg error';
             memberDetailsContainer.classList.add('hidden');
@@ -713,7 +721,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (document.getElementById('duesVerifiedNote')) {
                 document.getElementById('duesVerifiedNote').style.display = 'none';
             }
-            return;
         }
 
         // memberData is defined in data.js
@@ -993,8 +1000,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     const submissions = JSON.parse(localStorage.getItem('leoNominations') || '[]');
                     const isDuplicate = submissions.some(sub => sub.hasLeoId === 'yes' && sub.leoId === id);
-                    if (isDuplicate) {
+                    if (isDuplicate || window.serverDuplicateLeoId === id) {
                         showError('leoId', 'You have already submitted a nomination.');
+                        stepValid = false;
+                    } else if (window.isCheckingLeoId) {
+                        showError('leoId', 'Checking ID status, please wait...');
                         stepValid = false;
                     }
                 }

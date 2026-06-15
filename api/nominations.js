@@ -59,6 +59,22 @@ module.exports = async (req, res) => {
     }
   }
 
+  // Allow public checking of Leo ID submission status for the current tenure
+  if (method === 'GET' && req.query.checkLeoId) {
+    try {
+      let activeTenure = 'L.Y. 2025/26';
+      try {
+        const settingsRes = await sql`SELECT value FROM settings WHERE key = 'leoNominationTenure';`;
+        if (settingsRes.rowCount > 0) activeTenure = settingsRes.rows[0].value;
+      } catch (err) {}
+      
+      const check = await sql`SELECT id FROM nominations WHERE has_leo_id = 'yes' AND leo_id = ${req.query.checkLeoId} AND tenure = ${activeTenure};`;
+      return res.status(200).json({ hasSubmitted: check.rowCount > 0 });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
   // Admin authorization required for all other endpoints
   if (!verifyAdmin(req)) {
     return res.status(401).json({ error: 'Unauthorized' });
