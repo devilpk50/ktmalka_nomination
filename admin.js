@@ -1666,13 +1666,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         const isPdf = ext === 'pdf';
                         const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
                         const fileType = isPdf ? 'PDF' : isImage ? 'Image' : safeName === 'N/A' ? 'Missing' : 'Document';
+                        const icon = isPdf ? '📄' : isImage ? '🖼️' : safeName === 'N/A' ? '⚠️' : '📎';
 
                         if (!fileName || fileName === 'N/A') {
                             return `<div class="print-file-item"><strong>${label}:</strong> <span class="print-file-status missing">✗ Missing</span></div>`;
                         }
 
                         const href = fileUrl && fileUrl !== 'N/A' ? fileUrl : '#';
-                        return `<div class="print-file-item" style="display: flex; flex-direction: column; gap: 0.2rem;"><span><strong>${label}:</strong> <span class="print-file-status">✓ ${fileType} uploaded</span></span><a href="${href}" target="_blank" style="color: #2563eb; text-decoration: underline; font-size: 0.9rem;">${safeName}</a></div>`;
+                        return `<div class="print-file-item" style="display: flex; flex-direction: column; gap: 0.2rem;">
+                            <span><strong>${label}:</strong> <span class="print-file-status">${icon} ${fileType} uploaded</span></span>
+                            <a href="${href}" target="_blank" style="color: #2563eb; text-decoration: underline; font-size: 0.9rem;">${safeName}</a>
+                        </div>`;
                     };
 
                     // Profile card HTML container
