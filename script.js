@@ -511,18 +511,20 @@ document.addEventListener('DOMContentLoaded', () => {
             let allowedTypes = ALLOWED_DOC_TYPES;
             let label = 'File';
             if (fieldId === 'formalPhoto') {
-                allowedTypes = ALLOWED_IMAGE_TYPES;
+                allowedTypes = ['image/jpeg'];
                 label = 'Formal Photo';
             } else if (fieldId === 'candidateSignature') {
                 allowedTypes = ALLOWED_IMAGE_TYPES;
                 label = 'Candidate Signature';
             } else if (fieldId === 'citizenship') {
+                allowedTypes = ['application/pdf'];
                 label = 'Citizenship document';
             } else if (fieldId === 'duesReceipt') {
                 label = 'Club dues receipt';
             } else if (fieldId === 'nominationReceipt') {
                 label = 'Nomination Fee Paid Receipt';
             } else if (fieldId === 'coverLetterFile') {
+                allowedTypes = ['application/pdf'];
                 label = 'Cover Letter File';
             }
 
@@ -833,10 +835,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return /^[0-9]{10}$/.test(phone.replace(/[\s\-\+]/g, ''));
     }
 
-    // Validate file: type & size (limited to 10MB as standard size optimization)
+    // Validate file: type & size (limited to 5MB as standard size optimization)
     const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
     const ALLOWED_DOC_TYPES   = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-    const MAX_FILE_MB = 10;
+    const MAX_FILE_MB = 5;
 
     function validateFile(fileInput, allowedTypes, label) {
         const file = fileInput.files[0];
@@ -1036,7 +1038,7 @@ document.addEventListener('DOMContentLoaded', () => {
             clearError('candidateSignature');
 
             // Validate Required Documents (File uploads)
-            const photoErr = validateFile(document.getElementById('formalPhoto'), ALLOWED_IMAGE_TYPES, 'Formal Photo');
+            const photoErr = validateFile(document.getElementById('formalPhoto'), ['image/jpeg'], 'Formal Photo');
             if (photoErr) { showError('formalPhoto', photoErr); stepValid = false; }
             else if (!window.uploadedUrls['formalPhoto']) { showError('formalPhoto', 'Formal Photo upload failed or is still in progress.'); stepValid = false; }
 
@@ -1044,11 +1046,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (sigErr) { showError('candidateSignature', sigErr); stepValid = false; }
             else if (!window.uploadedUrls['candidateSignature']) { showError('candidateSignature', 'Candidate Signature upload failed or is still in progress.'); stepValid = false; }
 
-            const citizenErr = validateFile(document.getElementById('citizenship'), ALLOWED_DOC_TYPES, 'Citizenship document');
+            const citizenErr = validateFile(document.getElementById('citizenship'), ['application/pdf'], 'Citizenship document');
             if (citizenErr) { showError('citizenship', citizenErr); stepValid = false; }
             else if (!window.uploadedUrls['citizenship']) { showError('citizenship', 'Citizenship document upload failed or is still in progress.'); stepValid = false; }
 
-            const coverErr = validateFile(document.getElementById('coverLetterFile'), ALLOWED_DOC_TYPES, 'Cover Letter File');
+            const coverErr = validateFile(document.getElementById('coverLetterFile'), ['application/pdf'], 'Cover Letter File');
             if (coverErr) { showError('coverLetterFile', coverErr); stepValid = false; }
             else if (!window.uploadedUrls['coverLetterFile']) { showError('coverLetterFile', 'Cover Letter File upload failed or is still in progress.'); stepValid = false; }
 
