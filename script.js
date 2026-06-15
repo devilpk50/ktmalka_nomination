@@ -1095,32 +1095,38 @@ document.addEventListener('DOMContentLoaded', () => {
             { field: 'nominationReceipt', key: 'nominationReceiptUrl' }
         ];
 
-        // We will show upload progress
-        confirmSubmitBtn.textContent = 'Uploading files (0%)...';
-
-        let uploadedCount = 0;
-        const totalFiles = filesToUpload.filter(item => {
-            const input = document.getElementById(item.field);
-            return input && input.files && input.files[0];
-        }).length;
+        confirmSubmitBtn.textContent = 'Uploading files...';
 
         for (const item of filesToUpload) {
             const input = document.getElementById(item.field);
             if (input && input.files && input.files[0]) {
                 const file = input.files[0];
                 const filename = `${pendingFormData.id}_${item.field}_${file.name}`;
+                const span = input.nextElementSibling;
                 
                 const uploadPromise = (async () => {
                     try {
                         const blob = await uploadHelper(filename, file, {
                             access: 'public',
                             handleUploadUrl: '/api/upload',
+                            onUploadProgress(progressEvent) {
+                                if (span) {
+                                    span.textContent = `Uploading... ${Math.round(progressEvent.percentage)}%`;
+                                    span.style.color = '#3b82f6'; // Blue progress text
+                                }
+                            }
                         });
                         pendingFormData[item.key] = blob.url;
-                        uploadedCount++;
-                        confirmSubmitBtn.textContent = `Uploading files (${Math.round((uploadedCount / totalFiles) * 100)}%)...`;
+                        if (span) {
+                            span.textContent = `✓ Uploaded: ${file.name}`;
+                            span.style.color = '#10b981'; // Green success text
+                        }
                     } catch (err) {
                         console.error(`Failed to upload ${file.name} to Vercel Blob:`, err);
+                        if (span) {
+                            span.textContent = `✗ Upload failed: ${file.name}`;
+                            span.style.color = '#ef4444'; // Red error text
+                        }
                         throw new Error(`Upload failed for ${file.name}`);
                     }
                 })();
