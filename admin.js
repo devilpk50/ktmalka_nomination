@@ -829,11 +829,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailsModal = document.getElementById('detailsModal');
     const closeDetailsBtn = document.getElementById('closeDetailsBtn');
     const closeDetailsModalBtn = document.getElementById('closeDetailsModalBtn');
-    const printDetailsBtn = document.getElementById('printDetailsBtn');
     const modalDetailsContent = document.getElementById('modalDetailsContent');
 
     let submissions = [];
-    let currentDetailSubmission = null;
 
     async function loadData() {
         try {
@@ -1296,39 +1294,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         modalDetailsContent.innerHTML = detailsHtml;
         detailsModal.style.display = 'block';
-        currentDetailSubmission = sub;
         loadMediaPreviews(sub);
-    }
-
-    function printDetailsModal() {
-        if (!currentDetailSubmission || detailsModal.style.display === 'none') return;
-
-        const printStyle = document.createElement('style');
-        printStyle.id = 'modalPrintStyle';
-        printStyle.media = 'print';
-        printStyle.textContent = `
-            @media print {
-                body * { visibility: hidden !important; }
-                #detailsModal, #detailsModal * { visibility: visible !important; }
-                #detailsModal { position: static !important; background: transparent !important; }
-                #detailsModal .modal-content { box-shadow: none !important; margin: 0 !important; width: auto !important; max-width: 100% !important; border-radius: 0 !important; }
-                #detailsModal .close-btn, #detailsModal #closeDetailsModalBtn, #detailsModal #printDetailsBtn { display: none !important; }
-                #detailsModal .modal-content { border: none !important; }
-            }
-        `;
-
-        document.head.appendChild(printStyle);
-
-        const cleanup = () => {
-            if (printStyle.parentNode) {
-                printStyle.parentNode.removeChild(printStyle);
-            }
-            window.removeEventListener('afterprint', cleanup);
-        };
-
-        window.addEventListener('afterprint', cleanup);
-        window.print();
-        setTimeout(cleanup, 1000);
     }
 
     function closeModal() {
@@ -1338,9 +1304,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Modal Close Events
     closeDetailsBtn.addEventListener('click', closeModal);
     closeDetailsModalBtn.addEventListener('click', closeModal);
-    if (printDetailsBtn) {
-        printDetailsBtn.addEventListener('click', printDetailsModal);
-    }
     window.addEventListener('click', (e) => {
         if (e.target === detailsModal) {
             closeModal();
@@ -1660,25 +1623,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         ? `<span class="print-file-status">✓ Uploaded (${sub.signatureName})</span>`
                         : '<span class="print-file-status missing">✗ Missing</span>';
 
-                    const createAttachmentHtml = (label, fileName, fileUrl) => {
-                        const safeName = fileName || 'N/A';
-                        const ext = safeName.toString().split('.').pop().toLowerCase();
-                        const isPdf = ext === 'pdf';
-                        const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
-                        const fileType = isPdf ? 'PDF' : isImage ? 'Image' : safeName === 'N/A' ? 'Missing' : 'Document';
-                        const icon = isPdf ? '📄' : isImage ? '🖼️' : safeName === 'N/A' ? '⚠️' : '📎';
-
-                        if (!fileName || fileName === 'N/A') {
-                            return `<div class="print-file-item"><strong>${label}:</strong> <span class="print-file-status missing">✗ Missing</span></div>`;
-                        }
-
-                        const href = fileUrl && fileUrl !== 'N/A' ? fileUrl : '#';
-                        return `<div class="print-file-item" style="display: flex; flex-direction: column; gap: 0.2rem;">
-                            <span><strong>${label}:</strong> <span class="print-file-status">${icon} ${fileType} uploaded</span></span>
-                            <a href="${href}" target="_blank" style="color: #2563eb; text-decoration: underline; font-size: 0.9rem;">${safeName}</a>
-                        </div>`;
-                    };
-
                     // Profile card HTML container
                     const card = document.createElement('div');
                     card.className = 'print-profile-card';
@@ -1780,16 +1724,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="print-file-item" style="grid-column: span 2;">
                                 <strong>Candidate Signature:</strong> ${signatureStatusHtml}
                             </div>
-                        </div>
-
-                        <div class="print-section-title">Document Attachments</div>
-                        <div class="print-files-grid">
-                            ${createAttachmentHtml('Formal Photo', sub.formalPhotoName, photoUrl)}
-                            ${createAttachmentHtml('Candidate Signature', sub.signatureName, sigUrl)}
-                            ${createAttachmentHtml('Citizenship Copy', sub.citizenshipName, sub.citizenshipUrl)}
-                            ${createAttachmentHtml('Cover Letter File', sub.coverLetterName, sub.coverLetterUrl)}
-                            ${createAttachmentHtml('Club Dues Receipt', sub.duesReceiptName, sub.duesReceiptUrl)}
-                            ${createAttachmentHtml('Nomination Fee Receipt', sub.nominationReceiptName, sub.nominationReceiptUrl)}
                         </div>
 
                         <div class="print-section-title">Candidate Statements</div>
