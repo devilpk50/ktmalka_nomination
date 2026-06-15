@@ -6,16 +6,6 @@ const ADMIN_PASS = process.env.ADMIN_PASS || 'Ktm@lka26';
 module.exports = async (req, res) => {
   const method = req.method;
 
-  if (method === 'OPTIONS') {
-    res.setHeader('Allow', 'GET,POST,OPTIONS,HEAD');
-    return res.status(204).end();
-  }
-
-  if (method === 'HEAD') {
-    res.setHeader('Allow', 'GET,POST,OPTIONS,HEAD');
-    return res.status(200).end();
-  }
-
   if (method === 'GET') {
     try {
       const { rows } = await sql`SELECT * FROM settings;`;

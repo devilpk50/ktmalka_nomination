@@ -16,16 +16,6 @@ function verifyAdmin(req) {
 module.exports = async (req, res) => {
   const method = req.method;
 
-  if (method === 'OPTIONS') {
-    res.setHeader('Allow', 'GET,POST,PUT,DELETE,OPTIONS,HEAD');
-    return res.status(204).end();
-  }
-
-  if (method === 'HEAD') {
-    res.setHeader('Allow', 'GET,POST,PUT,DELETE,OPTIONS,HEAD');
-    return res.status(200).end();
-  }
-
   if (method === 'POST') {
     const n = req.body;
     try {

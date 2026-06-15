@@ -2,8 +2,16 @@
   "version": 2,
   "routes": [
     {
-      "src": "/admin/?",
+      "src": "/admin",
       "dest": "/admin.html"
+    },
+    {
+      "src": "/admin/",
+      "dest": "/admin.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
     }
   ],
   "headers": [
