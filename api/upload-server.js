@@ -45,52 +45,28 @@ module.exports = async (req, res) => {
   try {
     setCorsHeaders(res);
     const filename = req.query.filename || `file-${Date.now()}`;
-
-    // Decide whether the client sent multipart/form-data (browser FormData)
-    // or a raw stream (octet-stream / image / pdf). Support both for iOS compatibility.
-    const contentType = (req.headers['content-type'] || '').toLowerCase();
-
-    let blob;
-
-    if (contentType.includes('multipart/form-data')) {
-      const { files } = await parseForm(req);
-      const incomingFile = files.file || files.upload || Object.values(files)[0];
-      if (!incomingFile) {
-        return res.status(400).json({ error: 'No file uploaded (multipart)' });
-      }
-
-      const filePath = incomingFile.filepath
-        || incomingFile.path
-        || incomingFile.tmpfile?.filepath
-        || incomingFile.tempFilePath
-        || incomingFile.tempFile?.filepath
-        || incomingFile._writeStream?.path;
-      const mimeType = incomingFile.mimetype || incomingFile.type || incomingFile.mime || 'application/octet-stream';
-      if (!filePath) {
-        const fileKeys = Object.keys(incomingFile || {});
-        return res.status(400).json({ error: 'Unable to read uploaded file (multipart)', fileKeys });
-      }
-
-      blob = await put(filename, fs.createReadStream(filePath), {
-        access: 'public',
-        contentType: mimeType,
-      });
-
-      // Best-effort cleanup of temp file created by formidable
-      try {
-        fs.unlink(filePath, () => {});
-      } catch (e) {
-        // ignore cleanup errors
-      }
-    } else {
-      // For non-multipart uploads (raw binary), stream req directly to blob
-      // e.g., some iOS clients may send application/octet-stream or image/* without multipart
-      const mimeType = contentType || 'application/octet-stream';
-      blob = await put(filename, req, {
-        access: 'public',
-        contentType: mimeType,
-      });
+    const { files } = await parseForm(req);
+    const incomingFile = files.file || files.upload || Object.values(files)[0];
+    if (!incomingFile) {
+      return res.status(400).json({ error: 'No file uploaded' });
     }
+
+    const filePath = incomingFile.filepath
+      || incomingFile.path
+      || incomingFile.tmpfile?.filepath
+      || incomingFile.tempFilePath
+      || incomingFile.tempFile?.filepath
+      || incomingFile._writeStream?.path;
+    const mimeType = incomingFile.mimetype || incomingFile.type || incomingFile.mime || 'application/octet-stream';
+    if (!filePath) {
+      const fileKeys = Object.keys(incomingFile || {});
+      return res.status(400).json({ error: 'Unable to read uploaded file', fileKeys });
+    }
+
+    const blob = await put(filename, fs.createReadStream(filePath), {
+      access: 'public',
+      contentType: mimeType,
+    });
 
     return res.status(200).json(blob);
   } catch (error) {
