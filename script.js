@@ -682,11 +682,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Check if already registered/submitted locally or cached from server
-        const submissions = JSON.parse(localStorage.getItem('leoNominations') || '[]');
-        const isDuplicateLocal = submissions.some(sub => sub.hasLeoId === 'yes' && sub.leoId === id);
-        
-        if (isDuplicateLocal || window.serverDuplicateLeoId === id) {
+        // Only block duplicates that are confirmed by the server
+        if (window.serverDuplicateLeoId === id) {
             handleDuplicateError();
             return;
         }
@@ -1013,9 +1010,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     showError('leoId', 'Leo ID not found. Only registered members can apply.');
                     stepValid = false;
                 } else {
-                    const submissions = JSON.parse(localStorage.getItem('leoNominations') || '[]');
-                    const isDuplicate = submissions.some(sub => sub.hasLeoId === 'yes' && sub.leoId === id);
-                    if (isDuplicate || window.serverDuplicateLeoId === id) {
+                    if (window.serverDuplicateLeoId === id) {
                         showError('leoId', 'You have already submitted a nomination.');
                         stepValid = false;
                     } else if (window.isCheckingLeoId) {
