@@ -4,12 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let vercelBlobUpload = null;
 
     async function preloadBlobSDK() {
-        try {
-            const module = await import('https://esm.sh/@vercel/blob/client');
-            vercelBlobUpload = module.upload;
-        } catch (err) {
-            console.error('Failed to preload Vercel Blob SDK:', err);
-        }
+        // No longer needed, using native server-side uploads
     }
 
     function disableNavButtons(disable) {
@@ -551,26 +546,24 @@ document.addEventListener('DOMContentLoaded', () => {
                             // during the async token fetch or dynamic import delays.
                             const fileBuffer = await file.arrayBuffer();
                             
-                            fileNameSpan.textContent = `Preparing upload...`;
+                            fileNameSpan.textContent = `Uploading...`;
                             fileNameSpan.style.color = '#3b82f6';
-                            
-                            if (!vercelBlobUpload) {
-                                const module = await import('https://esm.sh/@vercel/blob/client');
-                                vercelBlobUpload = module.upload;
-                            }
                             
                             const uniqueFilename = `${Date.now()}_${fieldId}_${file.name}`;
                             
-                            const blob = await vercelBlobUpload(uniqueFilename, fileBuffer, {
-                                access: 'public',
-                                handleUploadUrl: '/api/upload',
-                                contentType: file.type || 'application/octet-stream',
-                                multipart: false, // Force standard POST to bypass iOS Safari ReadableStream bugs
-                                onUploadProgress(progressEvent) {
-                                    fileNameSpan.textContent = `Uploading... ${Math.round(progressEvent.percentage)}%`;
-                                    fileNameSpan.style.color = '#3b82f6';
-                                }
+                            const response = await fetch(`/api/upload-server?filename=${encodeURIComponent(uniqueFilename)}`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': file.type || 'application/octet-stream',
+                                },
+                                body: fileBuffer
                             });
+
+                            if (!response.ok) {
+                                throw new Error(`Server error: ${response.status}`);
+                            }
+
+                            const blob = await response.json();
                             
                             window.uploadedUrls[fieldId] = blob.url;
                             fileNameSpan.textContent = `✓ Uploaded: ${file.name}`;
@@ -580,7 +573,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             window.uploadedUrls[fieldId] = '';
                             fileNameSpan.textContent = `✗ Upload failed: ${file.name}`;
                             fileNameSpan.style.color = '#ef4444';
-                            showError(fieldId, 'Failed to upload file to storage database.');
+                            showError(fieldId, 'Failed to upload file. Please try a smaller file or check your connection.');
                         } finally {
                             activeUploadsCount--;
                             if (activeUploadsCount === 0) {
@@ -890,10 +883,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return /^[0-9]{10}$/.test(phone.replace(/[\s\-\+]/g, ''));
     }
 
-    // Validate file: type & size (limited to 10MB as standard size optimization)
+    // Validate file: type & size (limited to 4MB for Vercel Serverless limits)
     const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
     const ALLOWED_DOC_TYPES   = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'application/pdf'];
-    const MAX_FILE_MB = 10;
+    const MAX_FILE_MB = 4;
 
     function validateFile(fileInput, allowedTypes, label) {
         const file = fileInput.files[0];
