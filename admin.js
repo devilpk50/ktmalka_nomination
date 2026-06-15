@@ -889,9 +889,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return submissions.filter(sub => {
             const matchesSearch = sub.fullName.toLowerCase().includes(searchQuery) || 
-                                 (sub.leoId && sub.leoId.toLowerCase().includes(searchQuery)) ||
-                                 (sub.emailId && sub.emailId.toLowerCase().includes(searchQuery)) ||
-                                 (sub.contactNo && sub.contactNo.toLowerCase().includes(searchQuery));
+                                 (sub.leoId && sub.leoId.toLowerCase().includes(searchQuery));
             const matchesPosition = !selectedPos || sub.positionValue === selectedPos;
             const matchesStatus = !selectedStatus || sub.status === selectedStatus;
             const matchesTenure = !selectedTenure || (sub.tenure || 'L.Y. 2025/26') === selectedTenure;

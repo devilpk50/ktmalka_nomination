@@ -2,114 +2,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeUploadsCount = 0;
     window.uploadedUrls = {};
     let vercelBlobUpload = null;
-    const savedDraftKey = 'leoNominationDraft';
-    let draftNoticeElem = null;
-    let draftSaveTimer = null;
 
-    function createDraftNotice() {
-        const notice = document.createElement('div');
-        notice.id = 'draftNotice';
-        notice.style.cssText = 'background: #f8fafc; border: 1px solid #c7d2fe; color: #1d4ed8; padding: 0.9rem 1rem; border-radius: 10px; margin-bottom: 1rem; font-size: 0.95rem; display: none;';
-        notice.setAttribute('role', 'status');
-        return notice;
-    }
-
-    function getDraftNoticeElement() {
-        if (!draftNoticeElem && nominationForm) {
-            draftNoticeElem = createDraftNotice();
-            nominationForm.insertBefore(draftNoticeElem, nominationForm.firstChild);
-        }
-        return draftNoticeElem;
-    }
-
-    function setDraftNotice(message, success = true) {
-        const notice = getDraftNoticeElement();
-        if (!notice) return;
-        notice.textContent = message;
-        notice.style.display = 'block';
-        notice.style.borderColor = success ? '#bfdbfe' : '#fecaca';
-        notice.style.background = success ? '#eff6ff' : '#fef2f2';
-        notice.style.color = success ? '#1d4ed8' : '#991b1b';
-    }
-
-    function clearDraftNotice() {
-        const notice = getDraftNoticeElement();
-        if (notice) {
-            notice.style.display = 'none';
-        }
-    }
-
-    function getDraftData() {
-        try {
-            return JSON.parse(localStorage.getItem(savedDraftKey) || 'null');
-        } catch (err) {
-            console.warn('Invalid draft data in storage:', err);
-            return null;
-        }
-    }
-
-    function saveDraft() {
-        if (!nominationForm) return;
-        const draft = {
-            hasLeoId: document.querySelector('input[name="hasLeoId"]:checked')?.value || 'yes',
-            leoId: leoIdInput ? leoIdInput.value.trim() : '',
-            fullName: fullNameInput ? fullNameInput.value.trim() : '',
-            contactNo: contactNoInput ? contactNoInput.value.trim() : '',
-            emailId: emailIdInput ? emailIdInput.value.trim() : '',
-            currentPosition: currentPositionInput ? currentPositionInput.value.trim() : '',
-            position: positionSelect ? positionSelect.value : '',
-            transactionCode: transactionCodeInput ? transactionCodeInput.value.trim() : '',
-            pastExperience: document.getElementById('pastExperience') ? document.getElementById('pastExperience').value.trim() : '',
-            areasOfInterest: document.getElementById('areasOfInterest') ? document.getElementById('areasOfInterest').value.trim() : '',
-            futurePlans: document.getElementById('futurePlans') ? document.getElementById('futurePlans').value.trim() : '',
-            currentStep,
-            savedAt: new Date().toISOString()
-        };
-        localStorage.setItem(savedDraftKey, JSON.stringify(draft));
-        setDraftNotice('Draft saved locally. Files need to be reattached before submission.', true);
-    }
-
-    function queueSaveDraft() {
-        if (draftSaveTimer) {
-            clearTimeout(draftSaveTimer);
-        }
-        draftSaveTimer = setTimeout(saveDraft, 400);
-    }
-
-    function restoreDraft() {
-        const draft = getDraftData();
-        if (!draft) return;
-        if (draft.hasLeoId === 'no') {
-            const noRadio = document.querySelector('input[name="hasLeoId"][value="no"]');
-            if (noRadio) noRadio.checked = true;
-            leoIdGroup && leoIdGroup.classList.add('hidden');
-            manualEntryGroup && manualEntryGroup.classList.remove('hidden');
-            fullNameInput && (fullNameInput.value = draft.fullName || '');
-            contactNoInput && (contactNoInput.value = draft.contactNo || '');
-            emailIdInput && (emailIdInput.value = draft.emailId || '');
-            currentPositionInput && (currentPositionInput.value = draft.currentPosition || '');
-            if (currentPositionInput) currentPositionInput.dispatchEvent(new Event('input'));
-        } else {
-            const yesRadio = document.querySelector('input[name="hasLeoId"][value="yes"]');
-            if (yesRadio) yesRadio.checked = true;
-            leoIdGroup && leoIdGroup.classList.remove('hidden');
-            manualEntryGroup && manualEntryGroup.classList.add('hidden');
-            leoIdInput && (leoIdInput.value = draft.leoId || '');
-            if (leoIdInput) leoIdInput.dispatchEvent(new Event('input'));
-        }
-        positionSelect && draft.position && (positionSelect.value = draft.position);
-        if (positionSelect) positionSelect.dispatchEvent(new Event('change'));
-        transactionCodeInput && (transactionCodeInput.value = draft.transactionCode || '');
-        const pastExperienceField = document.getElementById('pastExperience');
-        if (pastExperienceField) pastExperienceField.value = draft.pastExperience || '';
-        const areasField = document.getElementById('areasOfInterest');
-        if (areasField) areasField.value = draft.areasOfInterest || '';
-        const futureField = document.getElementById('futurePlans');
-        if (futureField) futureField.value = draft.futurePlans || '';
-        currentStep = Number(draft.currentStep) || 1;
-        updateStepper();
-        setDraftNotice('A saved draft was restored. Please reattach your files and review before submitting.', true);
-    }
+    async function preloadBlobSDK() {
         // No longer needed, using native server-side uploads
     }
 
@@ -150,7 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const closedDeadlineVal = document.getElementById('closedDeadlineVal');
     const stepperWrapper = document.querySelector('.stepper-wrapper');
     const nominationForm = document.getElementById('nominationForm');
-    const draftNoticeElement = document.getElementById('draftNotice');
 
     function checkFormDeadline() {
         let deadlineStr = localStorage.getItem('leoNominationDeadline');
@@ -196,15 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
     if (understandBtn) understandBtn.addEventListener('click', closeModal);
 
-    // Attach autosave listeners for draft support
-    document.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], textarea, select').forEach(field => {
-        if (!field.closest('.file-input-wrapper')) {
-            field.addEventListener('input', queueSaveDraft);
-            field.addEventListener('change', queueSaveDraft);
-        }
-    });
-    document.querySelectorAll('input[name="hasLeoId"]').forEach(radio => radio.addEventListener('change', queueSaveDraft));
-
     // Initial load from server database
     async function initApp() {
         try {
@@ -231,7 +115,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         updateTenureDisplays();
-        restoreDraft();
         const isClosed = checkFormDeadline();
         
         // Show modal on page load if form is open
@@ -369,7 +252,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentStep++;
                 if (currentStep > totalSteps) currentStep = totalSteps;
                 updateStepper();
-                queueSaveDraft();
                 document.getElementById('nominationForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
             } else {
                 // Scroll to first error on active step
@@ -387,7 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
             currentStep--;
             if (currentStep < 1) currentStep = 1;
             updateStepper();
-            queueSaveDraft();
             document.getElementById('nominationForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
     });
@@ -568,7 +449,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             eligibilityNote.textContent = '✓ ' + message;
             eligibilityNote.className = 'verification-msg success';
-            eligibilityNote.style.display = 'block';
         }
     }
 
@@ -602,14 +482,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Show container
             criteriaContainer.classList.remove('hidden');
-            criteriaContainer.style.display = 'block';
             // Slight delay for animation effect
             setTimeout(() => {
                 criteriaContainer.style.opacity = '1';
             }, 10);
         } else {
             criteriaContainer.classList.add('hidden');
-            criteriaContainer.style.display = 'none';
             criteriaContainer.style.opacity = '0';
             if (paymentStepFee) {
                 paymentStepFee.textContent = 'Rs. 0';
@@ -617,190 +495,103 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    function getFileValidationConfig(fieldId) {
-        let allowedTypes = ALLOWED_DOC_TYPES;
-        let label = 'File';
-        if (fieldId === 'formalPhoto') {
-            allowedTypes = ['image/jpeg', 'image/heic', 'image/heif'];
-            label = 'Formal Photo';
-        } else if (fieldId === 'candidateSignature') {
-            allowedTypes = ALLOWED_IMAGE_TYPES;
-            label = 'Candidate Signature';
-        } else if (fieldId === 'citizenship') {
-            allowedTypes = ['application/pdf'];
-            label = 'Citizenship document';
-        } else if (fieldId === 'duesReceipt') {
-            label = 'Club dues receipt';
-        } else if (fieldId === 'nominationReceipt') {
-            label = 'Nomination Fee Paid Receipt';
-        } else if (fieldId === 'coverLetterFile') {
-            allowedTypes = ['application/pdf'];
-            label = 'Cover Letter File';
-        }
-        return { allowedTypes, label };
-    }
-
-    function getPreviewContainer(fileInput) {
-        const wrapper = fileInput.closest('.file-input-wrapper');
-        if (!wrapper) return null;
-        let preview = wrapper.parentNode.querySelector('.file-preview');
-        if (!preview) {
-            preview = document.createElement('div');
-            preview.className = 'file-preview';
-            preview.style.cssText = 'margin-top: 0.65rem; color: #475569; font-size: 0.92rem; line-height: 1.4;';
-            wrapper.parentNode.insertBefore(preview, wrapper.nextSibling);
-        }
-        return preview;
-    }
-
-    function updateFilePreview(fileInput) {
-        const preview = getPreviewContainer(fileInput);
-        if (!preview) return;
-        const file = fileInput.files[0];
-        if (!file) {
-            preview.innerHTML = '';
-            return;
-        }
-        if (file.type.startsWith('image/')) {
-            const imageUrl = URL.createObjectURL(file);
-            preview.innerHTML = `<img src="${imageUrl}" alt="Preview of ${file.name}" style="max-width: 160px; max-height: 120px; border-radius: 8px; border: 1px solid #cbd5e1; object-fit: cover; display: block; margin-top: 0.4rem;" />`;
-            const img = preview.querySelector('img');
-            if (img) {
-                img.onload = () => URL.revokeObjectURL(imageUrl);
-            }
-        } else {
-            preview.innerHTML = `<span style="display: inline-flex; align-items: center; gap: 0.4rem;">📄 ${file.name}</span>`;
-        }
-    }
-
-    function removeRetryButton(fieldId) {
-        const input = document.getElementById(fieldId);
-        if (!input) return;
-        const wrapper = input.closest('.file-input-wrapper');
-        const retryBtn = wrapper ? wrapper.querySelector('.retry-upload-btn') : null;
-        if (retryBtn) retryBtn.remove();
-    }
-
-    function showRetryButton(fieldId, fileInput, attempt) {
-        const wrapper = fileInput.closest('.file-input-wrapper');
-        if (!wrapper) return;
-        removeRetryButton(fieldId);
-        const retryBtn = document.createElement('button');
-        retryBtn.type = 'button';
-        retryBtn.className = 'retry-upload-btn';
-        retryBtn.textContent = `Retry upload (${attempt}/3)`;
-        retryBtn.style.cssText = 'margin-top: 0.6rem; padding: 0.55rem 1rem; border-radius: 999px; background: #f8fafc; color: #1d4ed8; border: 1px solid #bfdbfe; cursor: pointer; font-size: 0.88rem;';
-        retryBtn.addEventListener('click', () => {
-            retryBtn.textContent = 'Retrying...';
-            retryBtn.disabled = true;
-            startFileUpload(fileInput, attempt + 1);
-        });
-        wrapper.parentNode.insertBefore(retryBtn, wrapper.nextSibling);
-    }
-
-    async function startFileUpload(fileInput, attempt = 1) {
-        const fieldId = fileInput.id;
-        const wrapper = fileInput.closest('.file-input-wrapper');
-        const fileNameSpan = wrapper ? wrapper.querySelector('.file-name') : null;
-        const file = fileInput.files[0];
-        if (!file) return;
-
-        const { allowedTypes, label } = getFileValidationConfig(fieldId);
-        clearError(fieldId);
-        updateFilePreview(fileInput);
-
-        const err = validateFile(fileInput, allowedTypes, label);
-        if (err) {
-            if (fileNameSpan) {
-                fileNameSpan.textContent = file.name;
-                fileNameSpan.style.color = '#ef4444';
-                fileNameSpan.style.fontWeight = '500';
-            }
-            showError(fieldId, err);
-            window.uploadedUrls[fieldId] = '';
-            removeRetryButton(fieldId);
-            return;
-        }
-
-        try {
-            activeUploadsCount++;
-            disableNavButtons(true);
-            if (fileNameSpan) {
-                fileNameSpan.textContent = `Uploading ${file.name}... (attempt ${attempt}/3)`;
-                fileNameSpan.style.color = '#3b82f6';
-                fileNameSpan.style.fontWeight = '500';
-            }
-
-            const fileBuffer = await file.arrayBuffer();
-            const uniqueFilename = `${Date.now()}_${fieldId}_${file.name}`;
-            const response = await fetch(`/api/upload-server?filename=${encodeURIComponent(uniqueFilename)}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': file.type || 'application/octet-stream',
-                },
-                body: fileBuffer
-            });
-
-            if (!response.ok) {
-                throw new Error(`Server error: ${response.status}`);
-            }
-
-            const blob = await response.json();
-            window.uploadedUrls[fieldId] = blob.url;
-            if (fileNameSpan) {
-                fileNameSpan.textContent = `✓ Uploaded: ${file.name}`;
-                fileNameSpan.style.color = '#10b981';
-            }
-            removeRetryButton(fieldId);
-        } catch (err) {
-            console.error('File upload failed:', err);
-            window.uploadedUrls[fieldId] = '';
-            if (fileNameSpan) {
-                fileNameSpan.textContent = `✗ Upload failed: ${file.name}`;
-                fileNameSpan.style.color = '#ef4444';
-            }
-            showError(fieldId, 'Failed to upload file. Please try again.');
-            if (attempt < 3) {
-                showRetryButton(fieldId, fileInput, attempt);
-            } else {
-                showRetryButton(fieldId, fileInput, attempt);
-            }
-        } finally {
-            activeUploadsCount--;
-            if (activeUploadsCount === 0) {
-                disableNavButtons(false);
-            }
-        }
-    }
-
     // Handle file input changes for custom styling and real-time validation
     fileInputs.forEach(input => {
         input.addEventListener('change', (e) => {
             const fileNameSpan = e.target.nextElementSibling;
             const fieldId = input.id;
             clearError(fieldId);
-            updateFilePreview(input);
+
+            // Determine validation config
+            let allowedTypes = ALLOWED_DOC_TYPES;
+            let label = 'File';
+            if (fieldId === 'formalPhoto') {
+                allowedTypes = ['image/jpeg', 'image/heic', 'image/heif'];
+                label = 'Formal Photo';
+            } else if (fieldId === 'candidateSignature') {
+                allowedTypes = ALLOWED_IMAGE_TYPES;
+                label = 'Candidate Signature';
+            } else if (fieldId === 'citizenship') {
+                allowedTypes = ['application/pdf'];
+                label = 'Citizenship document';
+            } else if (fieldId === 'duesReceipt') {
+                label = 'Club dues receipt';
+            } else if (fieldId === 'nominationReceipt') {
+                label = 'Nomination Fee Paid Receipt';
+            } else if (fieldId === 'coverLetterFile') {
+                allowedTypes = ['application/pdf'];
+                label = 'Cover Letter File';
+            }
+
+
             if (e.target.files.length > 0) {
-                if (fileNameSpan) {
-                    fileNameSpan.textContent = e.target.files[0].name;
-                    fileNameSpan.style.color = '#2c3e50';
-                    fileNameSpan.style.fontWeight = '500';
+                const file = e.target.files[0];
+                fileNameSpan.textContent = file.name;
+                fileNameSpan.style.color = '#2c3e50';
+                fileNameSpan.style.fontWeight = '500';
+
+                const err = validateFile(input, allowedTypes, label);
+                if (err) {
+                    showError(fieldId, err);
+                    showCustomToast(`Upload failed: ${err}`, false);
+                    window.uploadedUrls[fieldId] = '';
+                } else {
+                    // Upload file immediately
+                    (async () => {
+                        try {
+                            activeUploadsCount++;
+                            disableNavButtons(true);
+                            
+                            // Read file into memory immediately to prevent iOS Safari from revoking access
+                            // during the async token fetch or dynamic import delays.
+                            const fileBuffer = await file.arrayBuffer();
+                            
+                            fileNameSpan.textContent = `Uploading...`;
+                            fileNameSpan.style.color = '#3b82f6';
+                            
+                            const uniqueFilename = `${Date.now()}_${fieldId}_${file.name}`;
+                            
+                            const response = await fetch(`/api/upload-server?filename=${encodeURIComponent(uniqueFilename)}`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': file.type || 'application/octet-stream',
+                                },
+                                body: fileBuffer
+                            });
+
+                            if (!response.ok) {
+                                throw new Error(`Server error: ${response.status}`);
+                            }
+
+                            const blob = await response.json();
+                            
+                            window.uploadedUrls[fieldId] = blob.url;
+                            fileNameSpan.textContent = `✓ Uploaded: ${file.name}`;
+                            fileNameSpan.style.color = '#10b981';
+                        } catch (err) {
+                            console.error('File upload failed:', err);
+                            window.uploadedUrls[fieldId] = '';
+                            fileNameSpan.textContent = `✗ Upload failed: ${file.name}`;
+                            fileNameSpan.style.color = '#ef4444';
+                            showError(fieldId, 'Failed to upload file. Please try a smaller file or check your connection.');
+                        } finally {
+                            activeUploadsCount--;
+                            if (activeUploadsCount === 0) {
+                                disableNavButtons(false);
+                            }
+                        }
+                    })();
                 }
-                startFileUpload(input);
             } else {
-                if (fileNameSpan) {
-                    fileNameSpan.textContent = 'No file chosen';
-                    fileNameSpan.style.color = '#64748b';
-                    fileNameSpan.style.fontWeight = 'normal';
-                }
+                fileNameSpan.textContent = 'No file chosen';
+                fileNameSpan.style.color = '#64748b';
+                fileNameSpan.style.fontWeight = 'normal';
                 window.uploadedUrls[fieldId] = '';
-                removeRetryButton(fieldId);
-                const { label } = getFileValidationConfig(fieldId);
+
                 if (input.required) {
                     showError(fieldId, `${label} is required.`);
                 }
             }
-            queueSaveDraft();
         });
     });
 
@@ -1397,7 +1188,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const closePreviewBtn = document.getElementById('closePreviewBtn');
     const cancelSubmitBtn = document.getElementById('cancelSubmitBtn');
     const confirmSubmitBtn = document.getElementById('confirmSubmitBtn');
-    const printPreviewBtn = document.getElementById('printPreviewBtn');
     const previewDetails = document.getElementById('previewDetails');
 
     const congratulationsModal = document.getElementById('congratulationsModal');
@@ -1426,13 +1216,6 @@ document.addEventListener('DOMContentLoaded', () => {
             congratulationsModal.style.display = 'none';
         }
     });
-
-    if (printPreviewBtn) {
-        printPreviewBtn.addEventListener('click', () => {
-            previewModal.style.display = 'block';
-            window.print();
-        });
-    }
 
     confirmSubmitBtn.addEventListener('click', async () => {
         if (!pendingFormData) return;
@@ -1503,10 +1286,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Re-enable confirm button
         confirmSubmitBtn.disabled = false;
         confirmSubmitBtn.textContent = 'Confirm & Submit';
-
-        // Clear saved draft after successful submission
-        localStorage.removeItem(savedDraftKey);
-        clearDraftNotice();
 
         // Show Congratulations modal and refresh the page automatically
         congratulationsModal.style.display = 'block';
