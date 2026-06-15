@@ -1,5 +1,6 @@
 const { put } = require('@vercel/blob');
-const formidable = require('formidable');
+const formidableModule = require('formidable');
+const formidable = formidableModule.default || formidableModule.formidable || formidableModule;
 const fs = require('fs');
 const os = require('os');
 
