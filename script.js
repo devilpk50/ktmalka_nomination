@@ -665,7 +665,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Handle Leo ID verification
-    leoIdInput.addEventListener('input', (e) => {
+    leoIdInput.addEventListener('input', async (e) => {
         const id = e.target.value.trim();
         
         if (id.length === 0) {
@@ -683,7 +683,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Check if already registered/submitted
         const submissions = JSON.parse(localStorage.getItem('leoNominations') || '[]');
-        const isDuplicate = submissions.some(sub => sub.hasLeoId === 'yes' && sub.leoId === id);
+        let isDuplicate = submissions.some(sub => sub.hasLeoId === 'yes' && sub.leoId === id);
+        
+        // If not found locally, check the server
+        if (!isDuplicate) {
+            try {
+                idVerificationMsg.textContent = 'Checking...';
+                idVerificationMsg.className = 'verification-msg';
+                const res = await fetch(`/api/check?leoId=${id}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.submitted) isDuplicate = true;
+                }
+            } catch (err) {
+                console.error('Error checking duplicate on server:', err);
+            }
+        }
+
+        // If the user typed something else while we were fetching, ignore this result
+        if (leoIdInput.value.trim() !== id) return;
         
         if (isDuplicate) {
             idVerificationMsg.textContent = 'Member has already submitted a nomination.';
