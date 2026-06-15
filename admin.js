@@ -1166,6 +1166,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showDetailsModal(sub) {
+        const getFileName = (url, fallbackName) => {
+            if (fallbackName && fallbackName !== 'N/A' && fallbackName !== undefined && fallbackName !== '') return fallbackName;
+            if (!url || url === 'N/A' || url.startsWith('Paid')) return 'N/A';
+            try {
+                const parts = decodeURIComponent(url).split('/');
+                const filenameWithTimestamp = parts[parts.length - 1];
+                const nameParts = filenameWithTimestamp.split('_');
+                if (nameParts.length >= 3) {
+                    return nameParts.slice(2).join('_');
+                }
+                return filenameWithTimestamp;
+            } catch (e) {
+                return 'File';
+            }
+        };
+
+        sub.formalPhotoName = getFileName(sub.formalPhotoUrl, sub.formalPhotoName);
+        sub.signatureName = getFileName(sub.signatureUrl, sub.signatureName);
+        sub.citizenshipName = getFileName(sub.citizenshipUrl, sub.citizenshipName);
+        sub.coverLetterName = getFileName(sub.coverLetterUrl, sub.coverLetterName || (sub.coverLetter && sub.coverLetter.includes('.') ? sub.coverLetter : 'N/A'));
+        sub.duesReceiptName = getFileName(sub.duesReceiptUrl, sub.duesReceiptName);
+        sub.nominationReceiptName = getFileName(sub.nominationReceiptUrl, sub.nominationReceiptName);
+
         let detailsHtml = '';
 
         // Section 1: Candidate Info
@@ -1418,6 +1441,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 const objectUrls = [];
 
                 for (const sub of submissions) {
+                    const getFileName = (url, fallbackName) => {
+                        if (fallbackName && fallbackName !== 'N/A' && fallbackName !== undefined && fallbackName !== '') return fallbackName;
+                        if (!url || url === 'N/A' || url.startsWith('Paid')) return 'N/A';
+                        try {
+                            const parts = decodeURIComponent(url).split('/');
+                            const filenameWithTimestamp = parts[parts.length - 1];
+                            const nameParts = filenameWithTimestamp.split('_');
+                            if (nameParts.length >= 3) {
+                                return nameParts.slice(2).join('_');
+                            }
+                            return filenameWithTimestamp;
+                        } catch (e) {
+                            return 'File';
+                        }
+                    };
+
+                    sub.formalPhotoName = getFileName(sub.formalPhotoUrl, sub.formalPhotoName);
+                    sub.signatureName = getFileName(sub.signatureUrl, sub.signatureName);
+                    sub.citizenshipName = getFileName(sub.citizenshipUrl, sub.citizenshipName);
+                    sub.coverLetterName = getFileName(sub.coverLetterUrl, sub.coverLetterName || (sub.coverLetter && sub.coverLetter.includes('.') ? sub.coverLetter : 'N/A'));
+                    sub.duesReceiptName = getFileName(sub.duesReceiptUrl, sub.duesReceiptName);
+                    sub.nominationReceiptName = getFileName(sub.nominationReceiptUrl, sub.nominationReceiptName);
+
                     // Fetch photo blob from IndexedDB if available
                     let photoUrl = '';
                     let isBlobUrl = false;
