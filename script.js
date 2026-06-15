@@ -568,6 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             eligibilityNote.textContent = '✓ ' + message;
             eligibilityNote.className = 'verification-msg success';
+            eligibilityNote.style.display = 'block';
         }
     }
 
@@ -601,12 +602,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Show container
             criteriaContainer.classList.remove('hidden');
+            criteriaContainer.style.display = 'block';
             // Slight delay for animation effect
             setTimeout(() => {
                 criteriaContainer.style.opacity = '1';
             }, 10);
         } else {
             criteriaContainer.classList.add('hidden');
+            criteriaContainer.style.display = 'none';
             criteriaContainer.style.opacity = '0';
             if (paymentStepFee) {
                 paymentStepFee.textContent = 'Rs. 0';
