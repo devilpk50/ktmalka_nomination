@@ -1255,9 +1255,9 @@ textarea.input-error {
 
     /* 3. Floating Directory Search Button Position Shift to top-right to avoid blocking buttons */
     .floating-search-btn {
-        position: fixed !important;
-        top: 0.75rem !important;
-        right: 0.75rem !important;
+        position: absolute !important;
+        top: 1rem !important;
+        right: 1rem !important;
         bottom: auto !important;
         left: auto !important;
         z-index: 1000 !important;
