@@ -1506,15 +1506,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const EXPORT_LIMIT = 25;
-            let exportList = filtered;
-            if (filtered.length > EXPORT_LIMIT) {
-                const useLatest = confirm(`There are ${filtered.length} matching submissions. Export the latest ${EXPORT_LIMIT} only for faster PDF generation? Press Cancel to export all submissions.`);
-                if (useLatest) {
-                    exportList = filtered.slice(-EXPORT_LIMIT);
-                }
-            }
-
             // Disable button and show loader
             exportPdfBtn.disabled = true;
             const originalText = exportPdfBtn.textContent;
@@ -1528,7 +1519,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const imgPromises = [];
                 const objectUrls = [];
  
-                for (const sub of exportList) {
+                for (const sub of filtered) {
                     const getFileName = (url, fallbackName) => {
                         if (fallbackName && fallbackName !== 'N/A' && fallbackName !== undefined && fallbackName !== '') return fallbackName;
                         if (!url || url === 'N/A' || url.startsWith('Paid')) return 'N/A';
