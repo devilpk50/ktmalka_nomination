@@ -28,14 +28,18 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateTenureDisplays() {
         const savedTenure = localStorage.getItem('leoNominationTenure') || 'L.Y. 2025/26';
         
-        // Update document title if applicable
+        // Update document title if present
         if (document.title.includes('Leo Club Nomination Form')) {
             document.title = `Leo Club Nomination Form | ${savedTenure}`;
         }
         
         // Update elements with class 'tenureText'
         document.querySelectorAll('.tenureText').forEach(el => {
-            el.textContent = savedTenure;
+            if (el.tagName === 'INPUT') {
+                el.value = savedTenure;
+            } else {
+                el.textContent = savedTenure;
+            }
         });
     }
 
@@ -1308,6 +1312,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Section 1: Member Info
         detailsHtml += '<div class="preview-section-title">1. Personal Information</div>';
+        const savedTenure = localStorage.getItem('leoNominationTenure') || 'L.Y. 2025/26';
+        detailsHtml += `<div class="preview-row"><span class="preview-label">Nomination Tenure</span><span class="preview-value"><strong>${savedTenure}</strong></span></div>`;
         detailsHtml += `<div class="preview-row"><span class="preview-label">Member Type</span><span class="preview-value">${formData.hasLeoId === 'yes' ? 'Registered Leo Member' : 'Non-Registered / Manual Entry'}</span></div>`;
         if (formData.hasLeoId === 'yes') {
             detailsHtml += `<div class="preview-row"><span class="preview-label">Leo ID</span><span class="preview-value">${formData.leoId}</span></div>`;
