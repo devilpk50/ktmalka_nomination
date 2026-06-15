@@ -595,6 +595,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Ensure button clicks always trigger file inputs (fallback for iOS)
+    document.querySelectorAll('.file-input-wrapper .btn-secondary').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const fileInput = btn.parentElement.querySelector('input[type="file"]');
+            if (fileInput) fileInput.click();
+        });
+    });
+
     // Handle radio toggle
     radioButtons.forEach(radio => {
         radio.addEventListener('change', (e) => {
