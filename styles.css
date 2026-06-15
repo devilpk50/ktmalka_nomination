@@ -1202,5 +1202,114 @@ textarea.input-error {
     background: var(--accent-gold-hover);
 }
 
+/* ==========================================================================
+   ADDITIONAL RESPONSIVE / MOBILE OPTIMIZATIONS
+   ========================================================================== */
+
+@media (max-width: 600px) {
+    /* 1. Header Logo Layout Optimization */
+    .header-logo-container {
+        display: grid !important;
+        grid-template-columns: auto auto !important;
+        justify-content: center !important;
+        align-items: center !important;
+        gap: 1rem !important;
+        text-align: center !important;
+        flex-direction: row !important;
+    }
+    .club-info {
+        grid-column: 1 / span 2;
+        text-align: center;
+        margin-top: 0.5rem;
+    }
+    .header-logo {
+        width: 70px !important;
+        height: 70px !important;
+        padding: 5px !important;
+    }
+    .club-info h1 {
+        font-size: 1.35rem !important;
+    }
+    .club-info p {
+        font-size: 0.9rem !important;
+    }
+
+    /* 2. Stepper Wizard Labels Optimization */
+    .step-label {
+        display: none !important; /* Hide labels to avoid horizontal overflow/overlap */
+    }
+    .step-item {
+        flex: none !important; /* Let circles align evenly */
+        width: auto !important;
+    }
+    .stepper {
+        justify-content: space-around !important;
+        gap: 0.5rem !important;
+    }
+    .stepper-progress {
+        left: 5% !important;
+        right: 5% !important;
+        top: 26px !important;
+    }
+
+    /* 3. Floating Directory Search Button Position Shift to top-right to avoid blocking buttons */
+    .floating-search-btn {
+        position: fixed !important;
+        top: 0.75rem !important;
+        right: 0.75rem !important;
+        bottom: auto !important;
+        left: auto !important;
+        z-index: 1000 !important;
+        padding: 0.5rem 0.9rem !important;
+        font-size: 0.8rem !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
+        border-radius: 20px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    /* 4. File Inputs Wrapping to Stacks */
+    .file-input-wrapper {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.4rem !important;
+    }
+    .file-input-wrapper .btn-secondary {
+        width: 100% !important;
+        text-align: center !important;
+    }
+    .file-name {
+        max-width: 100% !important;
+        text-align: center !important;
+        white-space: normal !important;
+        word-break: break-all !important;
+    }
+
+    /* 5. Preview Modal Actions Stacking */
+    .preview-actions {
+        flex-direction: column !important;
+        gap: 0.75rem !important;
+        width: 100% !important;
+    }
+    .preview-actions button {
+        width: 100% !important;
+    }
+    
+    /* 6. Form Steps Content Padding */
+    .glass-panel {
+        padding: 1.25rem 1rem !important;
+    }
+    .form-section h3 {
+        font-size: 1.15rem !important;
+    }
+    
+    /* Radio group stacked alignment */
+    .radio-group {
+        flex-direction: column !important;
+        gap: 0.8rem !important;
+    }
+}
+
+
 
 

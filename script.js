@@ -1,6 +1,16 @@
 document.addEventListener('DOMContentLoaded', () => {
     let activeUploadsCount = 0;
     window.uploadedUrls = {};
+    let vercelBlobUpload = null;
+
+    async function preloadBlobSDK() {
+        try {
+            const module = await import('https://esm.sh/@vercel/blob/client');
+            vercelBlobUpload = module.upload;
+        } catch (err) {
+            console.error('Failed to preload Vercel Blob SDK:', err);
+        }
+    }
 
     function disableNavButtons(disable) {
         document.querySelectorAll('.next-step, .prev-step, button[type="submit"]').forEach(btn => {
@@ -114,6 +124,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (welcomeModal) {
             welcomeModal.style.display = 'none';
         }
+        
+        // Preload Vercel Blob client SDK in the background
+        preloadBlobSDK();
     }
 
     // Call initApp to fetch settings and members
@@ -221,6 +234,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const progressPercent = ((currentStep - 1) / (totalSteps - 1)) * 100;
         if (stepperProgressBar) {
             stepperProgressBar.style.width = `${progressPercent}%`;
+        }
+
+        // Pre-warm the database Neon instance during the final steps to bypass cold start delays
+        if (currentStep >= 4) {
+            fetch('/api/settings').catch(() => {});
         }
     }
 
@@ -525,12 +543,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             fileNameSpan.textContent = `Preparing upload...`;
                             fileNameSpan.style.color = '#3b82f6';
                             
-                            const module = await import('https://esm.sh/@vercel/blob/client');
-                            const uploadHelper = module.upload;
+                            if (!vercelBlobUpload) {
+                                const module = await import('https://esm.sh/@vercel/blob/client');
+                                vercelBlobUpload = module.upload;
+                            }
                             
                             const uniqueFilename = `${Date.now()}_${fieldId}_${file.name}`;
                             
-                            const blob = await uploadHelper(uniqueFilename, file, {
+                            const blob = await vercelBlobUpload(uniqueFilename, file, {
                                 access: 'public',
                                 handleUploadUrl: '/api/upload',
                                 onUploadProgress(progressEvent) {
