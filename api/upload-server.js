@@ -1,7 +1,6 @@
 const { put } = require('@vercel/blob');
-const formidable = require('formidable');
+const { formidable } = require('formidable');
 const fs = require('fs');
-const os = require('os');
 
 function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -11,11 +10,7 @@ function setCorsHeaders(res) {
 
 function parseForm(req) {
   return new Promise((resolve, reject) => {
-    const form = formidable({
-      multiples: false,
-      uploadDir: os.tmpdir(),
-      keepExtensions: true,
-    });
+    const form = formidable({ multiples: false });
     form.parse(req, (err, fields, files) => {
       if (err) return reject(err);
       resolve({ fields, files });
@@ -50,16 +45,10 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const filePath = incomingFile.filepath
-      || incomingFile.path
-      || incomingFile.tmpfile?.filepath
-      || incomingFile.tempFilePath
-      || incomingFile.tempFile?.filepath
-      || incomingFile._writeStream?.path;
+    const filePath = incomingFile.filepath || incomingFile.path || incomingFile.tmpfile?.filepath;
     const mimeType = incomingFile.mimetype || incomingFile.type || incomingFile.mime || 'application/octet-stream';
     if (!filePath) {
-      const fileKeys = Object.keys(incomingFile || {});
-      return res.status(400).json({ error: 'Unable to read uploaded file', fileKeys });
+      return res.status(400).json({ error: 'Unable to read uploaded file' });
     }
 
     const blob = await put(filename, fs.createReadStream(filePath), {
