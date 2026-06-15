@@ -667,6 +667,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle Leo ID verification
     leoIdInput.addEventListener('input', (e) => {
         const id = e.target.value.trim();
+        clearError('leoId');
         
         if (id.length === 0) {
             idVerificationMsg.textContent = '';
@@ -681,35 +682,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Check if already registered/submitted locally
+        // Check if already registered/submitted locally or cached from server
         const submissions = JSON.parse(localStorage.getItem('leoNominations') || '[]');
         const isDuplicateLocal = submissions.some(sub => sub.hasLeoId === 'yes' && sub.leoId === id);
         
-        if (isDuplicateLocal) {
+        if (isDuplicateLocal || window.serverDuplicateLeoId === id) {
             handleDuplicateError();
             return;
         }
-
-        // Check backend asynchronously
-        window.isCheckingLeoId = true;
-        fetch('/api/nominations?checkLeoId=' + id)
-            .then(res => res.json())
-            .then(data => {
-                if (data.hasSubmitted) {
-                    window.serverDuplicateLeoId = id;
-                    if (leoIdInput.value.trim() === id) {
-                        handleDuplicateError();
-                    }
-                } else {
-                    if (window.serverDuplicateLeoId === id) {
-                        window.serverDuplicateLeoId = null;
-                    }
-                }
-            })
-            .catch(err => console.error('Error checking duplicate:', err))
-            .finally(() => {
-                if (leoIdInput.value.trim() === id) window.isCheckingLeoId = false;
-            });
 
         function handleDuplicateError() {
             idVerificationMsg.textContent = 'Member has already submitted a nomination.';
@@ -742,9 +722,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Apply position eligibility filter
             applyPositionEligibility(member.position || '');
             
-            // Show success message
-            idVerificationMsg.textContent = '✓ Verified Member';
-            idVerificationMsg.className = 'verification-msg success';
+            // Show checking message while fetch is pending
+            idVerificationMsg.textContent = 'Checking registration status...';
+            idVerificationMsg.className = 'verification-msg';
             
             // Check dues payment status
             if (member.duesPaid) {
@@ -768,6 +748,38 @@ document.addEventListener('DOMContentLoaded', () => {
                     document.getElementById('duesVerifiedNote').style.display = 'none';
                 }
             }
+
+            // Check backend asynchronously
+            window.isCheckingLeoId = true;
+            fetch('/api/nominations?checkLeoId=' + id)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.hasSubmitted) {
+                        window.serverDuplicateLeoId = id;
+                        if (leoIdInput.value.trim() === id) {
+                            handleDuplicateError();
+                        }
+                    } else {
+                        if (window.serverDuplicateLeoId === id) {
+                            window.serverDuplicateLeoId = null;
+                        }
+                        if (leoIdInput.value.trim() === id) {
+                            idVerificationMsg.textContent = '✓ Verified Member';
+                            idVerificationMsg.className = 'verification-msg success';
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('Error checking duplicate:', err);
+                    if (leoIdInput.value.trim() === id) {
+                        idVerificationMsg.textContent = '✓ Verified Member';
+                        idVerificationMsg.className = 'verification-msg success';
+                    }
+                })
+                .finally(() => {
+                    if (leoIdInput.value.trim() === id) window.isCheckingLeoId = false;
+                });
+
         } else {
             // Not found
             idVerificationMsg.textContent = 'Member not found. Please check your ID.';
@@ -775,11 +787,13 @@ document.addEventListener('DOMContentLoaded', () => {
             memberDetailsContainer.classList.add('hidden');
             duesReceiptContainer.style.display = 'block';
             duesReceiptInput.required = true;
+            resetPositionEligibility();
             if (document.getElementById('duesVerifiedNote')) {
                 document.getElementById('duesVerifiedNote').style.display = 'none';
             }
         }
     });
+
 
 
     // Live checkbox validation clearing
