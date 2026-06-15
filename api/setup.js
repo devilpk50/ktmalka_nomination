@@ -34,8 +34,14 @@ module.exports = async (req, res) => {
         citizenship_url TEXT,
         dues_receipt_url TEXT,
         nomination_receipt_url TEXT,
-        status VARCHAR(50) DEFAULT 'Pending'
+        status VARCHAR(50) DEFAULT 'Pending',
+        tenure VARCHAR(100)
       );
+    `;
+
+    // Ensure tenure column exists in existing deployments
+    await sql`
+      ALTER TABLE nominations ADD COLUMN IF NOT EXISTS tenure VARCHAR(100);
     `;
 
     // 2. Create members table

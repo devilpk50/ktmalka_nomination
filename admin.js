@@ -822,6 +822,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('searchInput');
     const positionFilter = document.getElementById('positionFilter');
     const statusFilter = document.getElementById('statusFilter');
+    const tenureFilter = document.getElementById('tenureFilter');
     const exportCsvBtn = document.getElementById('exportCsvBtn');
 
     // Details Modal elements
@@ -847,33 +848,71 @@ document.addEventListener('DOMContentLoaded', () => {
             showAdminToast('Failed to connect to backend api.', false);
             submissions = JSON.parse(localStorage.getItem('leoNominations') || '[]');
         }
+        updateTenureFilterOptions();
         updateStats();
         renderTable();
     }
 
+    function updateTenureFilterOptions() {
+        if (!tenureFilter) return;
+        
+        const allTenuresSet = new Set();
+        // Add the active tenure from settings so it is always present
+        const activeTenure = localStorage.getItem('leoNominationTenure') || 'L.Y. 2025/26';
+        allTenuresSet.add(activeTenure);
+        
+        submissions.forEach(sub => {
+            if (sub.tenure) {
+                allTenuresSet.add(sub.tenure);
+            }
+        });
+        
+        const currentSelection = tenureFilter.value || activeTenure;
+        
+        tenureFilter.innerHTML = '<option value="">All Tenures</option>';
+        Array.from(allTenuresSet).sort().forEach(ten => {
+            const opt = document.createElement('option');
+            opt.value = ten;
+            opt.textContent = ten;
+            tenureFilter.appendChild(opt);
+        });
+        
+        tenureFilter.value = currentSelection;
+    }
+
+    function getFilteredSubmissions() {
+        const searchQuery = searchInput.value.toLowerCase().trim();
+        const selectedPos = positionFilter.value;
+        const selectedStatus = statusFilter.value;
+        const selectedTenure = tenureFilter ? tenureFilter.value : '';
+
+        return submissions.filter(sub => {
+            const matchesSearch = sub.fullName.toLowerCase().includes(searchQuery) || 
+                                 (sub.leoId && sub.leoId.toLowerCase().includes(searchQuery));
+            const matchesPosition = !selectedPos || sub.positionValue === selectedPos;
+            const matchesStatus = !selectedStatus || sub.status === selectedStatus;
+            const matchesTenure = !selectedTenure || (sub.tenure || 'L.Y. 2025/26') === selectedTenure;
+            
+            return matchesSearch && matchesPosition && matchesStatus && matchesTenure;
+        });
+    }
+
     function updateStats() {
-        totalAppsEl.textContent = submissions.length;
-        presidentAppsEl.textContent = submissions.filter(s => s.positionValue === 'president').length;
-        vpAppsEl.textContent = submissions.filter(s => s.positionValue === 'vice_president').length;
-        otherAppsEl.textContent = submissions.length - parseInt(presidentAppsEl.textContent) - parseInt(vpAppsEl.textContent);
+        const selectedTenure = tenureFilter ? tenureFilter.value : '';
+        const filteredSubmissions = submissions.filter(sub => {
+            return !selectedTenure || (sub.tenure || 'L.Y. 2025/26') === selectedTenure;
+        });
+
+        totalAppsEl.textContent = filteredSubmissions.length;
+        presidentAppsEl.textContent = filteredSubmissions.filter(s => s.positionValue === 'president').length;
+        vpAppsEl.textContent = filteredSubmissions.filter(s => s.positionValue === 'vice_president').length;
+        otherAppsEl.textContent = filteredSubmissions.length - parseInt(presidentAppsEl.textContent) - parseInt(vpAppsEl.textContent);
     }
 
     function renderTable() {
         tableBody.innerHTML = '';
 
-        const searchQuery = searchInput.value.toLowerCase().trim();
-        const selectedPos = positionFilter.value;
-        const selectedStatus = statusFilter.value;
-
-        // Filter submissions
-        const filtered = submissions.filter(sub => {
-            const matchesSearch = sub.fullName.toLowerCase().includes(searchQuery) || 
-                                 (sub.leoId && sub.leoId.toLowerCase().includes(searchQuery));
-            const matchesPosition = !selectedPos || sub.positionValue === selectedPos;
-            const matchesStatus = !selectedStatus || sub.status === selectedStatus;
-            
-            return matchesSearch && matchesPosition && matchesStatus;
-        });
+        const filtered = getFilteredSubmissions();
 
         if (filtered.length === 0) {
             tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#64748b;">No matching submissions found.</td></tr>';
@@ -1275,23 +1314,40 @@ document.addEventListener('DOMContentLoaded', () => {
     searchInput.addEventListener('input', renderTable);
     positionFilter.addEventListener('change', renderTable);
     statusFilter.addEventListener('change', renderTable);
+    if (tenureFilter) {
+        tenureFilter.addEventListener('change', () => {
+            updateStats();
+            renderTable();
+        });
+    }
 
     // Clear Data Event
     clearDataBtn.addEventListener('click', () => {
+        const selectedTenure = tenureFilter ? tenureFilter.value : '';
+        const displayTenure = selectedTenure || 'all tenures';
         showConfirm(
-            'Delete All Submissions',
-            'Are you sure you want to delete all submissions? This cannot be undone.',
+            'Delete Submissions',
+            `Are you sure you want to delete all submissions for ${displayTenure}? This cannot be undone.`,
             async () => {
                 try {
-                    const res = await fetch('/api/nominations?id=all', {
+                    let url = '/api/nominations?id=all';
+                    if (selectedTenure) {
+                        url += `&tenure=${encodeURIComponent(selectedTenure)}`;
+                    }
+                    const res = await fetch(url, {
                         method: 'DELETE',
                         headers: getAuthHeaders()
                     });
                     if (res.ok) {
-                        submissions = [];
+                        if (selectedTenure) {
+                            submissions = submissions.filter(s => (s.tenure || 'L.Y. 2025/26') !== selectedTenure);
+                        } else {
+                            submissions = [];
+                        }
+                        updateTenureFilterOptions();
                         updateStats();
                         renderTable();
-                        showAdminToast('✓ Successfully cleared all nomination submissions.');
+                        showAdminToast(`✓ Successfully cleared submissions for ${displayTenure}.`);
                     } else {
                         showAdminToast('Failed to clear nominations on server.', false);
                     }
@@ -1305,7 +1361,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Export to Excel (XLSX) Functionality
     exportCsvBtn.addEventListener('click', () => {
-        if (submissions.length === 0) {
+        const filtered = getFilteredSubmissions();
+        if (filtered.length === 0) {
             alert('No submissions available to export.');
             return;
         }
@@ -1340,7 +1397,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const rows = [headers];
 
-        submissions.forEach(sub => {
+        filtered.forEach(sub => {
             const isVerifiedPaid = (sub.hasLeoId === 'yes' && sub.leoId && typeof memberData !== 'undefined' && memberData[sub.leoId] && memberData[sub.leoId].duesPaid);
             const isTextPaid = sub.duesReceiptName && (sub.duesReceiptName === 'Paid (Automatically Verified)' || sub.duesReceiptName === 'Verified / Exempt' || sub.duesReceiptName.toLowerCase().includes('paid'));
             const duesReceiptText = (isVerifiedPaid || isTextPaid) ? 'Paid (Automatically Verified)' : (sub.duesReceiptName || 'N/A');
@@ -1440,7 +1497,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportPdfBtn = document.getElementById('exportPdfBtn');
     if (exportPdfBtn) {
         exportPdfBtn.addEventListener('click', async () => {
-            if (submissions.length === 0) {
+            const filtered = getFilteredSubmissions();
+            if (filtered.length === 0) {
                 alert('No submissions available to export.');
                 return;
             }
@@ -1457,8 +1515,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const imgPromises = [];
                 const objectUrls = [];
-
-                for (const sub of submissions) {
+ 
+                for (const sub of filtered) {
                     const getFileName = (url, fallbackName) => {
                         if (fallbackName && fallbackName !== 'N/A' && fallbackName !== undefined && fallbackName !== '') return fallbackName;
                         if (!url || url === 'N/A' || url.startsWith('Paid')) return 'N/A';

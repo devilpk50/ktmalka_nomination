@@ -19,11 +19,22 @@ module.exports = async (req, res) => {
   if (method === 'POST') {
     const n = req.body;
     try {
-      // Check for duplicate nomination for registered member path
+      // Fetch current active tenure from settings
+      let activeTenure = 'L.Y. 2025/26';
+      try {
+        const settingsRes = await sql`SELECT value FROM settings WHERE key = 'leoNominationTenure';`;
+        if (settingsRes.rowCount > 0) {
+          activeTenure = settingsRes.rows[0].value;
+        }
+      } catch (err) {
+        console.error('Failed to fetch tenure for duplicate check:', err);
+      }
+
+      // Check for duplicate nomination for registered member path under the current active tenure
       if (n.hasLeoId === 'yes' && n.leoId) {
-        const check = await sql`SELECT id FROM nominations WHERE has_leo_id = 'yes' AND leo_id = ${n.leoId};`;
+        const check = await sql`SELECT id FROM nominations WHERE has_leo_id = 'yes' AND leo_id = ${n.leoId} AND tenure = ${activeTenure};`;
         if (check.rowCount > 0) {
-          return res.status(400).json({ error: 'You have already submitted a nomination.' });
+          return res.status(400).json({ error: 'You have already submitted a nomination for the current tenure.' });
         }
       }
 
@@ -32,13 +43,13 @@ module.exports = async (req, res) => {
           id, date, has_leo_id, leo_id, full_name, contact_no, email_id, current_position,
           position_applying_for, position_value, fee, transaction_code, cover_letter_url,
           past_experience, areas_of_interest, future_plans, formal_photo_url, signature_url,
-          citizenship_url, dues_receipt_url, nomination_receipt_url, status
+          citizenship_url, dues_receipt_url, nomination_receipt_url, status, tenure
         ) VALUES (
           ${n.id}, ${n.date}, ${n.hasLeoId}, ${n.leoId || ''}, ${n.fullName}, ${n.contactNo || ''},
           ${n.emailId || ''}, ${n.currentPosition || ''}, ${n.positionApplyingFor}, ${n.positionValue},
           ${n.fee}, ${n.transactionCode}, ${n.coverLetterUrl || ''}, ${n.pastExperience},
           ${n.areasOfInterest}, ${n.futurePlans}, ${n.formalPhotoUrl || ''}, ${n.signatureUrl || ''},
-          ${n.citizenshipUrl || ''}, ${n.duesReceiptUrl || ''}, ${n.nominationReceiptUrl || ''}, 'Pending'
+          ${n.citizenshipUrl || ''}, ${n.duesReceiptUrl || ''}, ${n.nominationReceiptUrl || ''}, 'Pending', ${activeTenure}
         );
       `;
       return res.status(201).json({ success: true, message: 'Nomination submitted successfully!' });
@@ -78,7 +89,8 @@ module.exports = async (req, res) => {
         citizenshipUrl: r.citizenship_url,
         duesReceiptUrl: r.dues_receipt_url,
         nominationReceiptUrl: r.nomination_receipt_url,
-        status: r.status
+        status: r.status,
+        tenure: r.tenure || 'L.Y. 2025/26'
       }));
       return res.status(200).json(formatted);
     } catch (error) {
@@ -97,8 +109,14 @@ module.exports = async (req, res) => {
     const id = req.query.id;
     try {
       if (id === 'all') {
-        await sql`TRUNCATE TABLE nominations;`;
-        return res.status(200).json({ success: true, message: 'All submissions cleared' });
+        const tenure = req.query.tenure;
+        if (tenure) {
+          await sql`DELETE FROM nominations WHERE tenure = ${tenure};`;
+          return res.status(200).json({ success: true, message: `All submissions for tenure ${tenure} cleared` });
+        } else {
+          await sql`TRUNCATE TABLE nominations;`;
+          return res.status(200).json({ success: true, message: 'All submissions cleared' });
+        }
       } else if (id) {
         await sql`DELETE FROM nominations WHERE id = ${id};`;
         return res.status(200).json({ success: true });
