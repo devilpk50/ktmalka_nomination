@@ -560,21 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             });
 
                             if (!response.ok) {
-                                const bodyText = await response.text();
-                                let errorMsg = `Server error: ${response.status}`;
-                                try {
-                                    const parsed = JSON.parse(bodyText);
-                                    if (parsed?.error) {
-                                        errorMsg += ` - ${parsed.error}`;
-                                    } else if (bodyText) {
-                                        errorMsg += ` - ${bodyText}`;
-                                    }
-                                } catch {
-                                    if (bodyText) {
-                                        errorMsg += ` - ${bodyText}`;
-                                    }
-                                }
-                                throw new Error(errorMsg);
+                                throw new Error(`Server error: ${response.status}`);
                             }
 
                             const blob = await response.json();
@@ -583,13 +569,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             fileNameSpan.textContent = `✓ Uploaded: ${file.name}`;
                             fileNameSpan.style.color = '#10b981';
                         } catch (err) {
-                            const debugMessage = err?.message || 'Unknown upload error';
                             console.error('File upload failed:', err);
                             window.uploadedUrls[fieldId] = '';
                             fileNameSpan.textContent = `✗ Upload failed: ${file.name}`;
                             fileNameSpan.style.color = '#ef4444';
-                            showError(fieldId, `Upload failed: ${debugMessage}`);
-                            showCustomToast(`Upload failed: ${debugMessage}`, false);
+                            showError(fieldId, 'Failed to upload file. Please try a smaller file or check your connection.');
                         } finally {
                             activeUploadsCount--;
                             if (activeUploadsCount === 0) {
