@@ -1107,12 +1107,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadMediaPreviews(sub) {
         const fields = [
-            { key: 'formalPhoto', name: sub.formalPhotoName, label: 'Formal Photo' },
-            { key: 'candidateSignature', name: sub.signatureName, label: 'Candidate Signature' },
-            { key: 'citizenship', name: sub.citizenshipName, label: 'Citizenship Copy' },
-            { key: 'coverLetter', name: sub.coverLetterName || (sub.coverLetter && sub.coverLetter.includes('.') ? sub.coverLetter : 'N/A'), label: 'Cover Letter File' },
-            { key: 'duesReceipt', name: sub.duesReceiptName, label: 'Club Dues Receipt' },
-            { key: 'nominationReceipt', name: sub.nominationReceiptName, label: 'Nomination Fee Receipt' }
+            { key: 'formalPhoto', name: sub.formalPhotoName, url: sub.formalPhotoUrl, label: 'Formal Photo' },
+            { key: 'candidateSignature', name: sub.signatureName, url: sub.signatureUrl, label: 'Candidate Signature' },
+            { key: 'citizenship', name: sub.citizenshipName, url: sub.citizenshipUrl, label: 'Citizenship Copy' },
+            { key: 'coverLetter', name: sub.coverLetterName || (sub.coverLetter && sub.coverLetter.includes('.') ? sub.coverLetter : 'N/A'), url: sub.coverLetterUrl, label: 'Cover Letter File' },
+            { key: 'duesReceipt', name: sub.duesReceiptName, url: sub.duesReceiptUrl, label: 'Club Dues Receipt' },
+            { key: 'nominationReceipt', name: sub.nominationReceiptName, url: sub.nominationReceiptUrl, label: 'Nomination Fee Receipt' }
         ];
 
         for (const field of fields) {
@@ -1136,24 +1136,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 let innerHtml = `<div style="font-weight: 500; font-family: monospace; font-size: 0.85rem; color: #64748b; margin-bottom: 0.25rem;">File: ${fileName}</div>`;
 
                 // Create a temporary Blob Object URL if the file exists locally in IndexedDB, fallback to standard link
-                const fileUrl = fileBlob ? URL.createObjectURL(fileBlob) : fileName;
+                const fileUrl = fileBlob ? URL.createObjectURL(fileBlob) : (field.url && field.url !== 'N/A' ? field.url : fileName);
 
                 if (isImage) {
                     innerHtml += `<div style="margin-top: 0.4rem; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #f8fafc; padding: 0.5rem; max-width: 100%; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem;">
-                        <img src="${fileUrl}" alt="${field.label}" style="max-width: 100%; max-height: 220px; border-radius: 4px; object-fit: contain;" onerror="this.outerHTML='<div style=&quot;padding: 1rem; color: #94a3b8; font-size: 0.85rem; font-weight: 500;&quot;>⚠ Preview unavailable (Place <strong>${fileName}</strong> in root directory to load)</div>'">
-                        <a href="${fileUrl}" download="${fileName}" style="background: var(--primary-blue); color: white; border: none; padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.8rem; cursor: pointer; text-decoration: none; font-weight: bold; align-self: flex-start;">Download Image</a>
+                        <img src="${fileUrl}" alt="${field.label}" style="max-width: 100%; max-height: 220px; border-radius: 4px; object-fit: contain;" onerror="this.outerHTML='<div style=&quot;padding: 1rem; color: #94a3b8; font-size: 0.85rem; font-weight: 500;&quot;>⚠ Preview unavailable (Failed to download)</div>'">
+                        <a href="${fileUrl}" download="${fileName}" target="_blank" style="background: var(--primary-blue); color: white; border: none; padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.8rem; cursor: pointer; text-decoration: none; font-weight: bold; align-self: flex-start;">Download Image</a>
                     </div>`;
                 } else if (isPdf) {
                     innerHtml += `<div style="margin-top: 0.4rem; display: inline-flex; gap: 0.5rem; align-items: center; background: #fee2e2; border: 1px solid #fca5a5; padding: 0.5rem 0.8rem; border-radius: 6px; color: #991b1b; font-weight: 600;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
                         PDF Document
-                        <a href="${fileUrl}" download="${fileName}" style="background: #ef4444; color: white; border: none; padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.8rem; cursor: pointer; text-decoration: none; font-weight: bold; margin-left: 0.5rem;">Download PDF</a>
+                        <a href="${fileUrl}" download="${fileName}" target="_blank" style="background: #ef4444; color: white; border: none; padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.8rem; cursor: pointer; text-decoration: none; font-weight: bold; margin-left: 0.5rem;">Download PDF</a>
                     </div>`;
                 } else {
                     innerHtml += `<div style="margin-top: 0.4rem; display: inline-flex; gap: 0.5rem; align-items: center; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 0.5rem 0.8rem; border-radius: 6px; color: #334155; font-weight: 600;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                         Document File
-                        <a href="${fileUrl}" download="${fileName}" style="background: var(--primary-blue); color: white; border: none; padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.8rem; cursor: pointer; text-decoration: none; font-weight: bold; margin-left: 0.5rem;">Download File</a>
+                        <a href="${fileUrl}" download="${fileName}" target="_blank" style="background: var(--primary-blue); color: white; border: none; padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.8rem; cursor: pointer; text-decoration: none; font-weight: bold; margin-left: 0.5rem;">Download File</a>
                     </div>`;
                 }
 
@@ -1435,9 +1435,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             console.error(`Failed to load photo for ${sub.fullName}`, err);
                         }
 
-                        // FALLBACK: If IndexedDB didn't return a blob, use the filename itself (local path fallback)
+                        // FALLBACK: If IndexedDB didn't return a blob, use the Vercel Blob URL from the database
                         if (!photoUrl) {
-                            photoUrl = sub.formalPhotoName;
+                            photoUrl = sub.formalPhotoUrl || sub.formalPhotoName;
                         }
                     }
 
@@ -1456,9 +1456,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             console.error(`Failed to load signature for ${sub.fullName}`, err);
                         }
 
-                        // FALLBACK: If IndexedDB didn't return a signature blob, use the filename itself
+                        // FALLBACK: If IndexedDB didn't return a signature blob, use the Vercel Blob URL from the database
                         if (!sigUrl) {
-                            sigUrl = sub.signatureName;
+                            sigUrl = sub.signatureUrl || sub.signatureName;
                         }
                     }
 
