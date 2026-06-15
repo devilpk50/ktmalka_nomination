@@ -852,7 +852,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function validateFile(fileInput, allowedTypes, label) {
         const file = fileInput.files[0];
         if (!file) return `${label} is required.`;
-        if (!allowedTypes.includes(file.type)) {
+
+        let isValidType = allowedTypes.includes(file.type);
+        if (!isValidType) {
+            const ext = file.name.split('.').pop().toLowerCase();
+            if ((ext === 'jpg' || ext === 'jpeg') && allowedTypes.includes('image/jpeg')) isValidType = true;
+            if (ext === 'png' && allowedTypes.includes('image/png')) isValidType = true;
+            if (ext === 'webp' && allowedTypes.includes('image/webp')) isValidType = true;
+            if (ext === 'pdf' && allowedTypes.includes('application/pdf')) isValidType = true;
+        }
+
+        if (!isValidType) {
             return `${label}: only ${allowedTypes.map(t => t.split('/')[1].toUpperCase()).join(', ')} files allowed.`;
         }
         if (file.size > MAX_FILE_MB * 1024 * 1024) {
