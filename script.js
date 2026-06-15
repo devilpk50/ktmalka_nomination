@@ -551,12 +551,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             
                             const uniqueFilename = `${Date.now()}_${fieldId}_${file.name}`;
                             
+                            const formData = new FormData();
+                            formData.append('file', file, file.name);
+
                             const response = await fetch(`/api/upload-server?filename=${encodeURIComponent(uniqueFilename)}`, {
                                 method: 'POST',
-                                headers: {
-                                    'Content-Type': file.type || 'application/octet-stream',
-                                },
-                                body: fileBuffer
+                                body: formData
                             });
 
                             if (!response.ok) {

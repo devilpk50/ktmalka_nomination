@@ -1,26 +1,59 @@
 const { put } = require('@vercel/blob');
+const formidable = require('formidable');
+const fs = require('fs');
+
+function setCorsHeaders(res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS,HEAD');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
+
+function parseForm(req) {
+  return new Promise((resolve, reject) => {
+    const form = formidable({ multiples: false });
+    form.parse(req, (err, fields, files) => {
+      if (err) return reject(err);
+      resolve({ fields, files });
+    });
+  });
+}
 
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') {
+    setCorsHeaders(res);
     res.setHeader('Allow', 'POST,OPTIONS,HEAD');
     return res.status(204).end();
   }
 
   if (req.method === 'HEAD') {
+    setCorsHeaders(res);
     res.setHeader('Allow', 'POST,OPTIONS,HEAD');
     return res.status(200).end();
   }
 
   if (req.method !== 'POST') {
+    setCorsHeaders(res);
     return res.status(405).json({ error: 'Method not allowed', allowed: 'POST' });
   }
 
   try {
+    setCorsHeaders(res);
     const filename = req.query.filename || `file-${Date.now()}`;
-    
-    // Upload the incoming request stream directly to Vercel Blob
-    const blob = await put(filename, req, {
+    const { files } = await parseForm(req);
+    const incomingFile = files.file || files.upload || Object.values(files)[0];
+    if (!incomingFile) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const filePath = incomingFile.filepath || incomingFile.path || incomingFile.tmpfile?.filepath;
+    const mimeType = incomingFile.mimetype || incomingFile.type || incomingFile.mime || 'application/octet-stream';
+    if (!filePath) {
+      return res.status(400).json({ error: 'Unable to read uploaded file' });
+    }
+
+    const blob = await put(filename, fs.createReadStream(filePath), {
       access: 'public',
+      contentType: mimeType,
     });
 
     return res.status(200).json(blob);
@@ -30,7 +63,6 @@ module.exports = async (req, res) => {
   }
 };
 
-// Disable Vercel's default body parser so we can receive the raw file stream directly
 module.exports.config = {
   api: {
     bodyParser: false,
