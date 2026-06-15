@@ -547,6 +547,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             activeUploadsCount++;
                             disableNavButtons(true);
                             
+                            // Read file into memory immediately to prevent iOS Safari from revoking access
+                            // during the async token fetch or dynamic import delays.
+                            const fileBuffer = await file.arrayBuffer();
+                            
                             fileNameSpan.textContent = `Preparing upload...`;
                             fileNameSpan.style.color = '#3b82f6';
                             
@@ -557,9 +561,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             
                             const uniqueFilename = `${Date.now()}_${fieldId}_${file.name}`;
                             
-                            const blob = await vercelBlobUpload(uniqueFilename, file, {
+                            const blob = await vercelBlobUpload(uniqueFilename, fileBuffer, {
                                 access: 'public',
                                 handleUploadUrl: '/api/upload',
+                                contentType: file.type || 'application/octet-stream',
                                 multipart: false, // Force standard POST to bypass iOS Safari ReadableStream bugs
                                 onUploadProgress(progressEvent) {
                                     fileNameSpan.textContent = `Uploading... ${Math.round(progressEvent.percentage)}%`;
