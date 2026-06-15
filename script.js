@@ -511,7 +511,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let allowedTypes = ALLOWED_DOC_TYPES;
             let label = 'File';
             if (fieldId === 'formalPhoto') {
-                allowedTypes = ['image/jpeg'];
+                allowedTypes = ['image/jpeg', 'image/heic', 'image/heif'];
                 label = 'Formal Photo';
             } else if (fieldId === 'candidateSignature') {
                 allowedTypes = ALLOWED_IMAGE_TYPES;
@@ -538,6 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const err = validateFile(input, allowedTypes, label);
                 if (err) {
                     showError(fieldId, err);
+                    showCustomToast(`Upload failed: ${err}`, false);
                     window.uploadedUrls[fieldId] = '';
                 } else {
                     // Upload file immediately
@@ -883,10 +884,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return /^[0-9]{10}$/.test(phone.replace(/[\s\-\+]/g, ''));
     }
 
-    // Validate file: type & size (limited to 5MB as standard size optimization)
-    const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-    const ALLOWED_DOC_TYPES   = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-    const MAX_FILE_MB = 5;
+    // Validate file: type & size (limited to 10MB as standard size optimization)
+    const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+    const ALLOWED_DOC_TYPES   = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'application/pdf'];
+    const MAX_FILE_MB = 10;
 
     function validateFile(fileInput, allowedTypes, label) {
         const file = fileInput.files[0];
@@ -898,6 +899,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if ((ext === 'jpg' || ext === 'jpeg') && allowedTypes.includes('image/jpeg')) isValidType = true;
             if (ext === 'png' && allowedTypes.includes('image/png')) isValidType = true;
             if (ext === 'webp' && allowedTypes.includes('image/webp')) isValidType = true;
+            if ((ext === 'heic' || ext === 'heif') && allowedTypes.includes('image/heic')) isValidType = true;
             if (ext === 'pdf' && allowedTypes.includes('application/pdf')) isValidType = true;
         }
 
