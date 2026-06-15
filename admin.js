@@ -13,6 +13,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const ADMIN_USER = 'nomination';
     const ADMIN_PASS = 'Ktm@lka26';
 
+    function getAuthHeaders() {
+        const username = ADMIN_USER;
+        const password = ADMIN_PASS;
+        const base64 = btoa(`${username}:${password}`);
+        return {
+            'Authorization': `Basic ${base64}`,
+            'Content-Type': 'application/json'
+        };
+    }
+
     // Deadline Settings Elements
     const deadlineInput = document.getElementById('deadlineInput');
     const tenureInput = document.getElementById('tenureInput');
@@ -35,21 +45,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // Call immediately on load
     updateTenureDisplays();
 
-    function initDeadlineSettings() {
+    async function initDeadlineSettings() {
         if (!deadlineInput) return;
         
-        let deadline = localStorage.getItem('leoNominationDeadline');
-        if (!deadline) {
-            deadline = '2026-06-17T23:59';
-            localStorage.setItem('leoNominationDeadline', deadline);
+        try {
+            const res = await fetch('/api/settings');
+            if (res.ok) {
+                const settings = await res.json();
+                if (settings.leoNominationDeadline) {
+                    localStorage.setItem('leoNominationDeadline', settings.leoNominationDeadline);
+                }
+                if (settings.leoNominationTenure) {
+                    localStorage.setItem('leoNominationTenure', settings.leoNominationTenure);
+                }
+            }
+        } catch (err) {
+            console.error('Failed to fetch settings from database:', err);
         }
+        
+        let deadline = localStorage.getItem('leoNominationDeadline') || '2026-06-17T23:59';
         deadlineInput.value = deadline;
 
-        let tenure = localStorage.getItem('leoNominationTenure');
-        if (!tenure) {
-            tenure = 'L.Y. 2025/26';
-            localStorage.setItem('leoNominationTenure', tenure);
-        }
+        let tenure = localStorage.getItem('leoNominationTenure') || 'L.Y. 2025/26';
         if (tenureInput) {
             tenureInput.value = tenure;
         }
@@ -62,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const newSaveBtn = saveDeadlineBtn.cloneNode(true);
             saveDeadlineBtn.parentNode.replaceChild(newSaveBtn, saveDeadlineBtn);
             
-            newSaveBtn.addEventListener('click', () => {
+            newSaveBtn.addEventListener('click', async () => {
                 const newDeadline = deadlineInput.value;
                 if (!newDeadline) {
                     showAdminToast('Please select a valid date and time.', false);
@@ -73,10 +90,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     showAdminToast('Please enter a valid tenure/L.Y. string.', false);
                     return;
                 }
-                localStorage.setItem('leoNominationDeadline', newDeadline);
-                localStorage.setItem('leoNominationTenure', newTenure);
-                updateTenureDisplays();
-                showAdminToast('✓ Nomination settings saved successfully!');
+                
+                try {
+                    const res = await fetch('/api/settings', {
+                        method: 'POST',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({ deadline: newDeadline, tenure: newTenure })
+                    });
+                    if (res.ok) {
+                        localStorage.setItem('leoNominationDeadline', newDeadline);
+                        localStorage.setItem('leoNominationTenure', newTenure);
+                        updateTenureDisplays();
+                        showAdminToast('✓ Nomination settings saved successfully!');
+                    } else {
+                        showAdminToast('Failed to save settings to server.', false);
+                    }
+                } catch (err) {
+                    console.error('Failed to save settings:', err);
+                    showAdminToast('Connection error. Failed to save settings.', false);
+                }
             });
         }
     }
@@ -131,13 +163,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 showConfirm(
                     'Reset Member Database',
                     'Are you sure you want to reset the member list to default? Any uploaded custom CSV list will be deleted.',
-                    () => {
-                        localStorage.removeItem('leoMemberData');
-                        showAdminToast('✓ Member list database reset to default.');
-                        updateCsvStatus();
-                        setTimeout(() => {
-                            location.reload();
-                        }, 1000);
+                    async () => {
+                        try {
+                            const res = await fetch('/api/setup?key=initialize');
+                            if (res.ok) {
+                                showAdminToast('✓ Member list database reset to default.');
+                                updateCsvStatus();
+                                setTimeout(() => {
+                                    location.reload();
+                                }, 1000);
+                            } else {
+                                showAdminToast('Failed to reset member list database.', false);
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            showAdminToast('Connection error. Failed to reset database.', false);
+                        }
                     }
                 );
             });
@@ -194,13 +235,38 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                localStorage.setItem('leoMemberData', JSON.stringify(newMemberData));
-                showAdminToast(`✓ Successfully imported ${Object.keys(newMemberData).length} member records!`);
-                updateCsvStatus();
-                
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
+                const membersArray = [];
+                for (const leoId in newMemberData) {
+                    membersArray.push({
+                        leoId,
+                        name: newMemberData[leoId].name,
+                        position: newMemberData[leoId].position,
+                        email: newMemberData[leoId].email,
+                        duesPaid: newMemberData[leoId].duesPaid
+                    });
+                }
+
+                // POST array to server API
+                fetch('/api/members', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(membersArray)
+                })
+                .then(res => {
+                    if (res.ok) {
+                        showAdminToast(`✓ Successfully imported ${membersArray.length} member records!`);
+                        updateCsvStatus();
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        showAdminToast('Failed to import members to database.', false);
+                    }
+                })
+                .catch(err => {
+                    console.error('Import error:', err);
+                    showAdminToast('Connection error. Import failed.', false);
+                });
 
             } catch (err) {
                 console.error('Error parsing member CSV:', err);
@@ -251,21 +317,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let currentMembers = {};
 
-        function loadMembers() {
-            // Load custom list if exists
-            const localData = localStorage.getItem('leoMemberData');
-            if (localData) {
-                try {
-                    currentMembers = JSON.parse(localData);
-                } catch (e) {
-                    console.error('Failed to parse custom member list:', e);
-                    currentMembers = Object.assign({}, memberData || {});
+        async function loadMembers() {
+            try {
+                const res = await fetch('/api/members');
+                if (res.ok) {
+                    currentMembers = await res.json();
                 }
-            } else {
-                // Initialize custom list with copy of default list
-                currentMembers = Object.assign({}, memberData || {});
-                localStorage.setItem('leoMemberData', JSON.stringify(currentMembers));
+            } catch (err) {
+                console.error('Failed to parse members from backend API:', err);
             }
+            renderMembersTable();
         }
 
         function saveMembers() {
@@ -356,11 +417,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     showConfirm(
                         'Delete Member',
                         `Are you sure you want to delete member "${mName}" (ID: ${id})?`,
-                        () => {
-                            delete currentMembers[id];
-                            saveMembers();
-                            renderMembersTable();
-                            showAdminToast(`✓ Deleted member "${mName}"`);
+                        async () => {
+                            try {
+                                const res = await fetch(`/api/members?id=${id}`, {
+                                    method: 'DELETE',
+                                    headers: getAuthHeaders()
+                                });
+                                if (res.ok) {
+                                    delete currentMembers[id];
+                                    renderMembersTable();
+                                    showAdminToast(`✓ Deleted member "${mName}"`);
+                                } else {
+                                    showAdminToast('Failed to delete member on server.', false);
+                                }
+                            } catch (err) {
+                                console.error('Error deleting member:', err);
+                                showAdminToast('Connection error. Failed to delete member.', false);
+                            }
                         }
                     );
                 });
@@ -431,7 +504,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (memberCrudForm) {
-            memberCrudForm.addEventListener('submit', (e) => {
+            memberCrudForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
                 const action = crudAction.value;
@@ -464,13 +537,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     formattedName = 'Leo ' + formattedName;
                 }
 
-                // If editing and ID changed, remove old key
-                if (action === 'edit' && origId !== newId) {
-                    delete currentMembers[origId];
-                }
-
-                // Save or update
-                currentMembers[newId] = {
+                const memberPayload = {
+                    originalLeoId: origId,
+                    newLeoId: newId,
+                    leoId: newId,
                     name: formattedName,
                     position: position,
                     email: email,
@@ -478,11 +548,37 @@ document.addEventListener('DOMContentLoaded', () => {
                     duesPaid: duesPaid
                 };
 
-                saveMembers();
-                closeCrudModal();
-                renderMembersTable();
-                
-                showAdminToast(action === 'create' ? `✓ Successfully added member "${formattedName}"!` : `✓ Successfully updated member "${formattedName}"!`);
+                try {
+                    const url = '/api/members';
+                    const method = action === 'create' ? 'POST' : 'PUT';
+                    const res = await fetch(url, {
+                        method: method,
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify(memberPayload)
+                    });
+
+                    if (res.ok) {
+                        if (action === 'edit' && origId !== newId) {
+                            delete currentMembers[origId];
+                        }
+                        currentMembers[newId] = {
+                            name: formattedName,
+                            position: position,
+                            email: email,
+                            contact: contact,
+                            duesPaid: duesPaid
+                        };
+                        closeCrudModal();
+                        renderMembersTable();
+                        showAdminToast(action === 'create' ? `✓ Successfully added member "${formattedName}"!` : `✓ Successfully updated member "${formattedName}"!`);
+                    } else {
+                        const err = await res.json();
+                        showAdminToast(err.error || 'Failed to save member on server.', false);
+                    }
+                } catch (err) {
+                    console.error('Error saving member:', err);
+                    showAdminToast('Connection error. Failed to save member.', false);
+                }
             });
         }
     }
@@ -718,8 +814,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let submissions = [];
 
-    function loadData() {
-        submissions = JSON.parse(localStorage.getItem('leoNominations') || '[]');
+    async function loadData() {
+        try {
+            const res = await fetch('/api/nominations', {
+                headers: getAuthHeaders()
+            });
+            if (res.ok) {
+                submissions = await res.json();
+            } else {
+                showAdminToast('Failed to load nominations from server database.', false);
+            }
+        } catch (err) {
+            console.error('Failed to load nominations:', err);
+            showAdminToast('Failed to connect to backend api.', false);
+            submissions = JSON.parse(localStorage.getItem('leoNominations') || '[]');
+        }
         updateStats();
         renderTable();
     }
@@ -805,15 +914,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 showConfirm(
                     'Delete Submission',
                     `Are you sure you want to delete the nomination submission from "${sub.fullName}"? This will also delete all uploaded files for this application.`,
-                    () => {
-                        submissions = submissions.filter(s => s.id !== sub.id);
-                        localStorage.setItem('leoNominations', JSON.stringify(submissions));
-                        if (typeof LeoDb !== 'undefined') {
-                            LeoDb.deleteSubFiles(sub.id);
+                    async () => {
+                        try {
+                            const res = await fetch(`/api/nominations?id=${sub.id}`, {
+                                method: 'DELETE',
+                                headers: getAuthHeaders()
+                            });
+                            if (res.ok) {
+                                submissions = submissions.filter(s => s.id !== sub.id);
+                                updateStats();
+                                renderTable();
+                                showAdminToast(`✓ Deleted submission from "${sub.fullName}"`);
+                            } else {
+                                showAdminToast('Failed to delete submission from server.', false);
+                            }
+                        } catch (err) {
+                            console.error('Error deleting submission:', err);
+                            showAdminToast('Connection error. Failed to delete.', false);
                         }
-                        updateStats();
-                        renderTable();
-                        showAdminToast(`✓ Deleted submission from "${sub.fullName}"`);
                     }
                 );
             });
@@ -824,18 +942,31 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function updateStatus(id, newStatus) {
-        // Find index of the submission
-        const index = submissions.findIndex(s => s.id === id);
-        if (index !== -1) {
-            const sub = submissions[index];
-            sub.status = newStatus;
-            localStorage.setItem('leoNominations', JSON.stringify(submissions));
-            updateStats();
-            renderTable();
-            
-            // Trigger notification
-            sendEmailNotification(sub, newStatus);
+    async function updateStatus(id, newStatus) {
+        try {
+            const res = await fetch('/api/nominations', {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ id, status: newStatus })
+            });
+            if (res.ok) {
+                const index = submissions.findIndex(s => s.id === id);
+                if (index !== -1) {
+                    const sub = submissions[index];
+                    sub.status = newStatus;
+                    updateStats();
+                    renderTable();
+                    
+                    // Trigger notification
+                    sendEmailNotification(sub, newStatus);
+                    showAdminToast(`✓ Application status updated to ${newStatus}`);
+                }
+            } else {
+                showAdminToast('Failed to update status on server.', false);
+            }
+        } catch (err) {
+            console.error('Error updating status:', err);
+            showAdminToast('Connection error. Failed to update status.', false);
         }
     }
 
@@ -1109,12 +1240,24 @@ document.addEventListener('DOMContentLoaded', () => {
         showConfirm(
             'Delete All Submissions',
             'Are you sure you want to delete all submissions? This cannot be undone.',
-            () => {
-                localStorage.removeItem('leoNominations');
-                if (typeof LeoDb !== 'undefined') {
-                    LeoDb.clearAllFiles();
+            async () => {
+                try {
+                    const res = await fetch('/api/nominations?id=all', {
+                        method: 'DELETE',
+                        headers: getAuthHeaders()
+                    });
+                    if (res.ok) {
+                        submissions = [];
+                        updateStats();
+                        renderTable();
+                        showAdminToast('✓ Successfully cleared all nomination submissions.');
+                    } else {
+                        showAdminToast('Failed to clear nominations on server.', false);
+                    }
+                } catch (err) {
+                    console.error('Error clearing data:', err);
+                    showAdminToast('Connection error. Failed to clear nominations.', false);
                 }
-                loadData();
             }
         );
     });

@@ -13,9 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Call immediately on load
-    updateTenureDisplays();
-
     // Dynamic Deadline Enforcement
     const deadlineText = document.getElementById('deadlineText');
     const closedNotice = document.getElementById('closedNotice');
@@ -55,19 +52,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return false;
     }
 
-    const isClosed = checkFormDeadline();
-
     // Modal Logic
     const welcomeModal = document.getElementById('welcomeModal');
     const closeModalBtn = document.getElementById('closeModalBtn');
     const understandBtn = document.getElementById('understandBtn');
-
-    // Show modal on page load if form is open
-    if (!isClosed && welcomeModal) {
-        welcomeModal.style.display = 'block';
-    } else if (welcomeModal) {
-        welcomeModal.style.display = 'none';
-    }
 
     const closeModal = () => {
         if (welcomeModal) welcomeModal.style.display = 'none';
@@ -75,6 +63,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
     if (understandBtn) understandBtn.addEventListener('click', closeModal);
+
+    // Initial load from server database
+    async function initApp() {
+        try {
+            // Fetch settings
+            const settingsRes = await fetch('/api/settings');
+            if (settingsRes.ok) {
+                const settings = await settingsRes.json();
+                if (settings.leoNominationDeadline) {
+                    localStorage.setItem('leoNominationDeadline', settings.leoNominationDeadline);
+                }
+                if (settings.leoNominationTenure) {
+                    localStorage.setItem('leoNominationTenure', settings.leoNominationTenure);
+                }
+            }
+            
+            // Fetch members
+            const membersRes = await fetch('/api/members');
+            if (membersRes.ok) {
+                const members = await membersRes.json();
+                window.memberData = members;
+            }
+        } catch (err) {
+            console.error('Failed to fetch initial settings/members from database:', err);
+        }
+        
+        updateTenureDisplays();
+        const isClosed = checkFormDeadline();
+        
+        // Show modal on page load if form is open
+        if (!isClosed && welcomeModal) {
+            welcomeModal.style.display = 'block';
+        } else if (welcomeModal) {
+            welcomeModal.style.display = 'none';
+        }
+    }
+
+    // Call initApp to fetch settings and members
+    initApp();
 
     // Close when clicking outside of the modal content
     window.addEventListener('click', (e) => {
@@ -1043,41 +1070,102 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Disable confirm button to prevent double-submit
         confirmSubmitBtn.disabled = true;
-        confirmSubmitBtn.textContent = 'Submitting...';
+        confirmSubmitBtn.textContent = 'Preparing files...';
 
-        // Save to localStorage directly
-        let submissions = JSON.parse(localStorage.getItem('leoNominations') || '[]');
-        submissions.push(pendingFormData);
-        localStorage.setItem('leoNominations', JSON.stringify(submissions));
+        // Dynamic import of Vercel Blob client-side SDK from CDN
+        let uploadHelper;
+        try {
+            const module = await import('https://esm.sh/@vercel/blob/client');
+            uploadHelper = module.upload;
+        } catch (err) {
+            console.error('Failed to load Vercel Blob client library:', err);
+            alert('File upload library failed to load. Please check your internet connection and try again.');
+            confirmSubmitBtn.disabled = false;
+            confirmSubmitBtn.textContent = 'Confirm & Submit';
+            return;
+        }
 
-        // Save files to IndexedDB and wait for all to complete before resetting form
-        if (typeof LeoDb !== 'undefined') {
-            const subId = pendingFormData.id;
-            const savePromises = [];
-            
-            const photoFile = document.getElementById('formalPhoto').files[0];
-            if (photoFile) savePromises.push(LeoDb.saveFile(subId, 'formalPhoto', photoFile));
+        const uploadPromises = [];
+        const filesToUpload = [
+            { field: 'coverLetterFile', key: 'coverLetterUrl' },
+            { field: 'formalPhoto', key: 'formalPhotoUrl' },
+            { field: 'citizenship', key: 'citizenshipUrl' },
+            { field: 'duesReceipt', key: 'duesReceiptUrl' },
+            { field: 'candidateSignature', key: 'signatureUrl' },
+            { field: 'nominationReceipt', key: 'nominationReceiptUrl' }
+        ];
 
-            const sigFile = document.getElementById('candidateSignature').files[0];
-            if (sigFile) savePromises.push(LeoDb.saveFile(subId, 'candidateSignature', sigFile));
-            
-            const citizenFile = document.getElementById('citizenship').files[0];
-            if (citizenFile) savePromises.push(LeoDb.saveFile(subId, 'citizenship', citizenFile));
-            
-            const coverFile = document.getElementById('coverLetterFile').files[0];
-            if (coverFile) savePromises.push(LeoDb.saveFile(subId, 'coverLetter', coverFile));
-            
-            const duesFile = document.getElementById('duesReceipt').files[0];
-            if (duesFile) savePromises.push(LeoDb.saveFile(subId, 'duesReceipt', duesFile));
-            
-            const nominationFile = document.getElementById('nominationReceipt').files[0];
-            if (nominationFile) savePromises.push(LeoDb.saveFile(subId, 'nominationReceipt', nominationFile));
-            
-            try {
-                await Promise.all(savePromises);
-            } catch (err) {
-                console.error('Failed to save files to IndexedDB database:', err);
+        // We will show upload progress
+        confirmSubmitBtn.textContent = 'Uploading files (0%)...';
+
+        let uploadedCount = 0;
+        const totalFiles = filesToUpload.filter(item => {
+            const input = document.getElementById(item.field);
+            return input && input.files && input.files[0];
+        }).length;
+
+        for (const item of filesToUpload) {
+            const input = document.getElementById(item.field);
+            if (input && input.files && input.files[0]) {
+                const file = input.files[0];
+                const filename = `${pendingFormData.id}_${item.field}_${file.name}`;
+                
+                const uploadPromise = (async () => {
+                    try {
+                        const blob = await uploadHelper(filename, file, {
+                            access: 'public',
+                            handleUploadUrl: '/api/upload',
+                        });
+                        pendingFormData[item.key] = blob.url;
+                        uploadedCount++;
+                        confirmSubmitBtn.textContent = `Uploading files (${Math.round((uploadedCount / totalFiles) * 100)}%)...`;
+                    } catch (err) {
+                        console.error(`Failed to upload ${file.name} to Vercel Blob:`, err);
+                        throw new Error(`Upload failed for ${file.name}`);
+                    }
+                })();
+                uploadPromises.push(uploadPromise);
+            } else {
+                pendingFormData[item.key] = '';
             }
+        }
+
+        try {
+            await Promise.all(uploadPromises);
+        } catch (err) {
+            alert(err.message || 'File upload failed. Please try again.');
+            confirmSubmitBtn.disabled = false;
+            confirmSubmitBtn.textContent = 'Confirm & Submit';
+            return;
+        }
+
+        confirmSubmitBtn.textContent = 'Submitting form...';
+
+        try {
+            const response = await fetch('/api/nominations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(pendingFormData)
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.error || 'Failed to submit nomination to database.');
+            }
+
+            // Save to localStorage only as local backup
+            let submissions = JSON.parse(localStorage.getItem('leoNominations') || '[]');
+            submissions.push(pendingFormData);
+            localStorage.setItem('leoNominations', JSON.stringify(submissions));
+
+        } catch (err) {
+            console.error('Submission error:', err);
+            alert(err.message || 'Failed to submit nomination. Please try again.');
+            confirmSubmitBtn.disabled = false;
+            confirmSubmitBtn.textContent = 'Confirm & Submit';
+            return;
         }
 
         // Prepare congratulations message
