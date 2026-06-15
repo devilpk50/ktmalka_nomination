@@ -829,9 +829,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailsModal = document.getElementById('detailsModal');
     const closeDetailsBtn = document.getElementById('closeDetailsBtn');
     const closeDetailsModalBtn = document.getElementById('closeDetailsModalBtn');
+    const printDetailsBtn = document.getElementById('printDetailsBtn');
     const modalDetailsContent = document.getElementById('modalDetailsContent');
 
     let submissions = [];
+    let currentDetailSubmission = null;
 
     async function loadData() {
         try {
@@ -1294,7 +1296,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
         modalDetailsContent.innerHTML = detailsHtml;
         detailsModal.style.display = 'block';
+        currentDetailSubmission = sub;
         loadMediaPreviews(sub);
+    }
+
+    function printDetailsModal() {
+        if (!currentDetailSubmission || detailsModal.style.display === 'none') return;
+
+        const printStyle = document.createElement('style');
+        printStyle.id = 'modalPrintStyle';
+        printStyle.media = 'print';
+        printStyle.textContent = `
+            @media print {
+                body * { visibility: hidden !important; }
+                #detailsModal, #detailsModal * { visibility: visible !important; }
+                #detailsModal { position: static !important; background: transparent !important; }
+                #detailsModal .modal-content { box-shadow: none !important; margin: 0 !important; width: auto !important; max-width: 100% !important; border-radius: 0 !important; }
+                #detailsModal .close-btn, #detailsModal #closeDetailsModalBtn, #detailsModal #printDetailsBtn { display: none !important; }
+                #detailsModal .modal-content { border: none !important; }
+            }
+        `;
+
+        document.head.appendChild(printStyle);
+
+        const cleanup = () => {
+            if (printStyle.parentNode) {
+                printStyle.parentNode.removeChild(printStyle);
+            }
+            window.removeEventListener('afterprint', cleanup);
+        };
+
+        window.addEventListener('afterprint', cleanup);
+        window.print();
+        setTimeout(cleanup, 1000);
     }
 
     function closeModal() {
@@ -1304,6 +1338,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Modal Close Events
     closeDetailsBtn.addEventListener('click', closeModal);
     closeDetailsModalBtn.addEventListener('click', closeModal);
+    if (printDetailsBtn) {
+        printDetailsBtn.addEventListener('click', printDetailsModal);
+    }
     window.addEventListener('click', (e) => {
         if (e.target === detailsModal) {
             closeModal();
@@ -1506,6 +1543,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            const EXPORT_LIMIT = 25;
+            let exportList = filtered;
+            if (filtered.length > EXPORT_LIMIT) {
+                const useLatest = confirm(`There are ${filtered.length} matching submissions. Export the latest ${EXPORT_LIMIT} only for faster PDF generation? Press Cancel to export all submissions.`);
+                if (useLatest) {
+                    exportList = filtered.slice(-EXPORT_LIMIT);
+                }
+            }
+
             // Disable button and show loader
             exportPdfBtn.disabled = true;
             const originalText = exportPdfBtn.textContent;
@@ -1519,7 +1565,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const imgPromises = [];
                 const objectUrls = [];
  
-                for (const sub of filtered) {
+                for (const sub of exportList) {
                     const getFileName = (url, fallbackName) => {
                         if (fallbackName && fallbackName !== 'N/A' && fallbackName !== undefined && fallbackName !== '') return fallbackName;
                         if (!url || url === 'N/A' || url.startsWith('Paid')) return 'N/A';
