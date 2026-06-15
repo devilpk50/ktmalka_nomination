@@ -1394,13 +1394,36 @@ document.addEventListener('DOMContentLoaded', () => {
             'Areas of Interest',
             'Future Plans'
         ];
+
+        const getFileName = (url, fallbackName) => {
+            if (fallbackName && fallbackName !== 'N/A' && fallbackName !== undefined && fallbackName !== '') return fallbackName;
+            if (!url || url === 'N/A' || url.startsWith('Paid')) return 'N/A';
+            try {
+                const parts = decodeURIComponent(url).split('/');
+                const filenameWithTimestamp = parts[parts.length - 1];
+                const nameParts = filenameWithTimestamp.split('_');
+                if (nameParts.length >= 3) {
+                    return nameParts.slice(2).join('_');
+                }
+                return filenameWithTimestamp;
+            } catch (e) {
+                return 'File';
+            }
+        };
         
         const rows = [headers];
 
         filtered.forEach(sub => {
+            const formalPhotoName = getFileName(sub.formalPhotoUrl, sub.formalPhotoName);
+            const signatureName = getFileName(sub.signatureUrl, sub.signatureName);
+            const citizenshipName = getFileName(sub.citizenshipUrl, sub.citizenshipName);
+            const coverLetterName = getFileName(sub.coverLetterUrl, sub.coverLetterName || (sub.coverLetter && sub.coverLetter.includes('.') ? sub.coverLetter : 'N/A'));
+            const duesReceiptName = getFileName(sub.duesReceiptUrl, sub.duesReceiptName);
+            const nominationReceiptName = getFileName(sub.nominationReceiptUrl, sub.nominationReceiptName);
+
             const isVerifiedPaid = (sub.hasLeoId === 'yes' && sub.leoId && typeof memberData !== 'undefined' && memberData[sub.leoId] && memberData[sub.leoId].duesPaid);
-            const isTextPaid = sub.duesReceiptName && (sub.duesReceiptName === 'Paid (Automatically Verified)' || sub.duesReceiptName === 'Verified / Exempt' || sub.duesReceiptName.toLowerCase().includes('paid'));
-            const duesReceiptText = (isVerifiedPaid || isTextPaid) ? 'Paid (Automatically Verified)' : (sub.duesReceiptName || 'N/A');
+            const isTextPaid = duesReceiptName && (duesReceiptName === 'Paid (Automatically Verified)' || duesReceiptName === 'Verified / Exempt' || duesReceiptName.toLowerCase().includes('paid'));
+            const duesReceiptText = (isVerifiedPaid || isTextPaid) ? 'Paid (Automatically Verified)' : (duesReceiptName || 'N/A');
 
             const row = [
                 sub.id,
@@ -1415,12 +1438,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 sub.fee,
                 sub.transactionCode || 'N/A',
                 sub.status,
-                sub.formalPhotoName || 'N/A',
-                sub.signatureName || 'N/A',
-                sub.citizenshipName || 'N/A',
-                sub.coverLetterName || sub.coverLetter || 'N/A',
+                formalPhotoName,
+                signatureName,
+                citizenshipName,
+                coverLetterName || sub.coverLetter || 'N/A',
                 duesReceiptText,
-                sub.nominationReceiptName || 'N/A',
+                nominationReceiptName,
                 sub.pastExperience || 'N/A',
                 sub.areasOfInterest || 'N/A',
                 sub.futurePlans || 'N/A'
@@ -1438,43 +1461,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.warn("SheetJS library is not loaded. Falling back to CSV export.");
                 
                 let csvContent = '\uFEFF'; // Add UTF-8 BOM for Excel formatting
-                csvContent += headers.join(',') + '\n';
-
                 const escapeCSV = (val) => {
                     if (val === undefined || val === null) return '';
                     const str = String(val);
                     return `"${str.replace(/"/g, '""')}"`;
                 };
 
-                submissions.forEach(sub => {
-                    const isVerifiedPaid = (sub.hasLeoId === 'yes' && sub.leoId && typeof memberData !== 'undefined' && memberData[sub.leoId] && memberData[sub.leoId].duesPaid);
-                    const isTextPaid = sub.duesReceiptName && (sub.duesReceiptName === 'Paid (Automatically Verified)' || sub.duesReceiptName === 'Verified / Exempt' || sub.duesReceiptName.toLowerCase().includes('paid'));
-                    const duesReceiptText = (isVerifiedPaid || isTextPaid) ? 'Paid (Automatically Verified)' : (sub.duesReceiptName || 'N/A');
-
-                    const row = [
-                        sub.id,
-                        new Date(sub.date).toLocaleString(),
-                        sub.fullName,
-                        sub.hasLeoId,
-                        sub.leoId || 'N/A',
-                        sub.emailId || 'N/A',
-                        sub.contactNo || 'N/A',
-                        sub.currentPosition || 'N/A',
-                        sub.positionApplyingFor,
-                        sub.fee,
-                        sub.transactionCode || 'N/A',
-                        sub.status,
-                        sub.formalPhotoName || 'N/A',
-                        sub.citizenshipName || 'N/A',
-                        sub.coverLetterName || sub.coverLetter || 'N/A',
-                        duesReceiptText,
-                        sub.nominationReceiptName || 'N/A',
-                        sub.pastExperience || 'N/A',
-                        sub.areasOfInterest || 'N/A',
-                        sub.futurePlans || 'N/A'
-                    ].map(escapeCSV);
-                    
-                    csvContent += row.join(',') + '\n';
+                rows.forEach(r => {
+                    csvContent += r.map(escapeCSV).join(',') + '\n';
                 });
 
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
