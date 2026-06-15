@@ -297,6 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function initMembersManager() {
         const membersTableBody = document.querySelector('#membersTable tbody');
         const memberSearchInput = document.getElementById('memberSearchInput');
+        const memberSortSelect = document.getElementById('memberSortSelect');
         const addMemberBtn = document.getElementById('addMemberBtn');
         const memberCrudModal = document.getElementById('memberCrudModal');
         const closeMemberCrudBtn = document.getElementById('closeMemberCrudBtn');
@@ -361,12 +362,25 @@ document.addEventListener('DOMContentLoaded', () => {
         function renderMembersTable() {
             membersTableBody.innerHTML = '';
             const query = memberSearchInput ? memberSearchInput.value.toLowerCase().trim() : '';
+            const sortDir = memberSortSelect ? memberSortSelect.value : 'asc';
 
-            const keys = Object.keys(currentMembers);
+            const membersArray = Object.keys(currentMembers).map(id => ({
+                id,
+                ...currentMembers[id]
+            }));
+
+            membersArray.sort((a, b) => {
+                const nameA = (a.name || '').toLowerCase().trim();
+                const nameB = (b.name || '').toLowerCase().trim();
+                if (nameA < nameB) return sortDir === 'asc' ? -1 : 1;
+                if (nameA > nameB) return sortDir === 'asc' ? 1 : -1;
+                return 0;
+            });
+
             let matchCount = 0;
 
-            keys.forEach(id => {
-                const member = currentMembers[id];
+            membersArray.forEach(member => {
+                const id = member.id;
                 const matches = id.toLowerCase().includes(query) || 
                                 (member.name && member.name.toLowerCase().includes(query)) || 
                                 (member.position && member.position.toLowerCase().includes(query)) ||
@@ -486,6 +500,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Attach listeners
         if (memberSearchInput) {
             memberSearchInput.addEventListener('input', renderMembersTable);
+        }
+
+        if (memberSortSelect) {
+            memberSortSelect.addEventListener('change', renderMembersTable);
         }
 
         if (addMemberBtn) {
