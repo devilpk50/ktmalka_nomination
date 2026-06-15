@@ -1428,6 +1428,12 @@ document.addEventListener('DOMContentLoaded', () => {
         sidebarSearchResults.innerHTML = '';
         
         const q = query.toLowerCase().trim();
+        
+        if (q === '') {
+            sidebarSearchResults.innerHTML = `<div style="text-align: center; color: #64748b; margin-top: 2rem; font-size: 0.9rem;">Type name, email, or ID to search...</div>`;
+            return;
+        }
+        
         let currentMembers = {};
         
         // Load custom members from localStorage if available, fallback to memberData from data.js
