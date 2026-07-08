@@ -28,17 +28,18 @@ app.use('/api/contact', require('./routes/contact'));
 app.use('/api/newsletter', require('./routes/newsletter'));
 
 // Nomination Form APIs
-app.all('/api/nominations', require('../api/nominations'));
-app.all('/api/members', require('../api/members'));
-app.all('/api/settings', require('../api/settings'));
-app.all('/api/setup', require('../api/setup'));
-app.all('/api/upload', require('../api/upload'));
-app.all('/api/upload-server', require('../api/upload-server'));
-app.all('/api/menu', require('../api/menu'));
-app.all('/api/pages', require('../api/pages'));
-app.all('/api/projects', require('../api/projects'));
-app.all('/api/events', require('../api/events'));
-app.all('/api/sliders', require('../api/sliders'));
+app.all('/api/nominations', require('./api/nominations'));
+app.all('/api/members', require('./api/members'));
+app.all('/api/settings', require('./api/settings'));
+app.all('/api/setup', require('./api/setup'));
+app.all('/api/upload', require('./api/upload'));
+app.all('/api/upload-server', require('./api/upload-server'));
+app.all('/api/menu', require('./api/menu'));
+app.all('/api/pages', require('./api/pages'));
+app.all('/api/projects', require('./api/projects'));
+app.all('/api/events', require('./api/events'));
+app.all('/api/sliders', require('./api/sliders'));
+app.all('/api/debug', require('./api/debug'));
 
 app.use(express.static(path.join(__dirname, '../frontend')));
 
