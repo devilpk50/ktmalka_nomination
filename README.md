@@ -40,7 +40,7 @@ Administrators can manage the nomination cycle from a dashboard, including form 
 
 ```text
 .
-|-- index.html              # Public nomination form
+|-- nomination_form.html    # Public nomination form
 |-- script.js               # Public form logic
 |-- styles.css              # Public form styles
 |-- admin.html              # Admin dashboard
@@ -85,7 +85,7 @@ After deployment, initialize the database by visiting:
 
 ## Pages
 
-- Public form: `/index.html`
+- Public form: `/nomination_form.html`
 - Admin dashboard: `/admin`
 
 ## Notes

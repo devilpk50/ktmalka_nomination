@@ -1,17 +1,62 @@
 {
   "version": 2,
+  "cleanUrls": true,
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "/api/index.js"
+    },
+    {
       "src": "/admin",
-      "dest": "/admin.html"
+      "dest": "/frontend/admin.html"
     },
     {
       "src": "/admin/",
-      "dest": "/admin.html"
+      "dest": "/frontend/admin.html"
+    },
+    {
+      "src": "/admin/login",
+      "dest": "/frontend/admin-login.html"
+    },
+    {
+      "src": "/admin/members",
+      "dest": "/frontend/admin-members.html"
+    },
+    {
+      "src": "/admin/contacts",
+      "dest": "/frontend/admin-contacts.html"
+    },
+    {
+      "src": "/admin/newsletter",
+      "dest": "/frontend/admin-newsletter.html"
+    },
+    {
+      "src": "/admin/menu",
+      "dest": "/frontend/admin-menu.html"
+    },
+    {
+      "src": "/admin/pages",
+      "dest": "/frontend/admin-pages.html"
+    },
+    {
+      "src": "/admin/projects",
+      "dest": "/frontend/admin-projects.html"
+    },
+    {
+      "src": "/admin/events",
+      "dest": "/frontend/admin-events.html"
+    },
+    {
+      "src": "/admin/sliders",
+      "dest": "/frontend/admin-sliders.html"
+    },
+    {
+      "src": "/",
+      "dest": "/frontend/nomination_form.html"
     },
     {
       "src": "/(.*)",
-      "dest": "/$1"
+      "dest": "/frontend/$1"
     }
   ],
   "headers": [

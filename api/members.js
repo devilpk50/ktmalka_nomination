@@ -4,6 +4,7 @@ const ADMIN_USER = process.env.ADMIN_USER || 'nomination';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'Ktm@lka26';
 
 function verifyAdmin(req) {
+  if (req.session && req.session.admin) return true;
   const authHeader = req.headers.authorization;
   if (!authHeader) return false;
   const [type, credentials] = authHeader.split(' ');
@@ -108,3 +109,4 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 };
+

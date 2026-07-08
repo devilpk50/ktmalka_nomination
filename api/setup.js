@@ -64,6 +64,96 @@ module.exports = async (req, res) => {
       );
     `;
 
+    // 4. Create menu_items table
+    await sql`
+      CREATE TABLE IF NOT EXISTS menu_items (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(100) NOT NULL,
+        url VARCHAR(255) NOT NULL,
+        parent_id INTEGER DEFAULT NULL,
+        position_order INTEGER DEFAULT 0,
+        is_active BOOLEAN DEFAULT TRUE
+      );
+    `;
+
+    // 5. Create pages table for dynamic content
+    await sql`
+      CREATE TABLE IF NOT EXISTS pages (
+        slug VARCHAR(100) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        html_content TEXT,
+        last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    // 6. Create projects table
+    await sql`
+      CREATE TABLE IF NOT EXISTS projects (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        date VARCHAR(100),
+        description TEXT,
+        category VARCHAR(100),
+        status VARCHAR(50),
+        image_url TEXT,
+        is_signature BOOLEAN DEFAULT FALSE,
+        details TEXT,
+        objectives TEXT,
+        location VARCHAR(255),
+        date_from VARCHAR(100),
+        date_to VARCHAR(100),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    // Ensure new columns exist for existing projects
+    await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS location VARCHAR(255);`;
+    await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS date_from VARCHAR(100);`;
+    await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS date_to VARCHAR(100);`;
+
+    // 7. Create events table
+    await sql`
+      CREATE TABLE IF NOT EXISTS events (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        date VARCHAR(100),
+        location VARCHAR(255),
+        description TEXT,
+        image_url TEXT,
+        status VARCHAR(50),
+        time VARCHAR(100),
+        category VARCHAR(100),
+        details TEXT,
+        objectives TEXT,
+        contact_info TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    // Ensure new columns exist for existing events
+    await sql`ALTER TABLE events ADD COLUMN IF NOT EXISTS time VARCHAR(100);`;
+    await sql`ALTER TABLE events ADD COLUMN IF NOT EXISTS category VARCHAR(100);`;
+    await sql`ALTER TABLE events ADD COLUMN IF NOT EXISTS details TEXT;`;
+    await sql`ALTER TABLE events ADD COLUMN IF NOT EXISTS objectives TEXT;`;
+    await sql`ALTER TABLE events ADD COLUMN IF NOT EXISTS contact_info TEXT;`;
+
+    // 8. Create sliders table
+    await sql`
+      CREATE TABLE IF NOT EXISTS sliders (
+        id SERIAL PRIMARY KEY,
+        image_url TEXT NOT NULL,
+        title VARCHAR(255),
+        tagline VARCHAR(255),
+        btn1_text VARCHAR(100),
+        btn1_url VARCHAR(255),
+        btn2_text VARCHAR(100),
+        btn2_url VARCHAR(255),
+        position_order INTEGER DEFAULT 0,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
     // Seed default settings if not exists
     await sql`
       INSERT INTO settings (key, value)
