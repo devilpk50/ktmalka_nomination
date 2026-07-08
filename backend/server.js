@@ -41,7 +41,7 @@ app.all('/api/events', require('./api/events'));
 app.all('/api/sliders', require('./api/sliders'));
 app.all('/api/debug', require('./api/debug'));
 
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, '../public'), { extensions: ['html'] }));
 
 // Serve HTML pages
 app.get('/', (req, res) => {
@@ -80,36 +80,7 @@ app.get('/contact', (req, res) => {
     res.sendFile(path.join(__dirname, '../public', 'contact.html'));
 });
 
-app.get('/admin/login', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public', 'admin-login.html'));
-});
-app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public', 'admin.html'));
-});
-app.get('/admin/members', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public', 'admin-members.html'));
-});
-app.get('/admin/contacts', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public', 'admin-contacts.html'));
-});
-app.get('/admin/newsletter', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public', 'admin-newsletter.html'));
-});
-app.get('/admin/menu', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public', 'admin-menu.html'));
-});
-app.get('/admin/pages', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public', 'admin-pages.html'));
-});
-app.get('/admin/projects', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public', 'admin-projects.html'));
-});
-app.get('/admin/events', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public', 'admin-events.html'));
-});
-app.get('/admin/sliders', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public', 'admin-sliders.html'));
-});
+
 
 // Start Server if run locally
 if (require.main === module) {
