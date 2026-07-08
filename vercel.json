@@ -5,58 +5,6 @@
     {
       "source": "/api/(.*)",
       "destination": "/api/index.js"
-    },
-    {
-      "source": "/admin",
-      "destination": "/frontend/admin.html"
-    },
-    {
-      "source": "/admin/",
-      "destination": "/frontend/admin.html"
-    },
-    {
-      "source": "/admin/login",
-      "destination": "/frontend/admin-login.html"
-    },
-    {
-      "source": "/admin/members",
-      "destination": "/frontend/admin-members.html"
-    },
-    {
-      "source": "/admin/contacts",
-      "destination": "/frontend/admin-contacts.html"
-    },
-    {
-      "source": "/admin/newsletter",
-      "destination": "/frontend/admin-newsletter.html"
-    },
-    {
-      "source": "/admin/menu",
-      "destination": "/frontend/admin-menu.html"
-    },
-    {
-      "source": "/admin/pages",
-      "destination": "/frontend/admin-pages.html"
-    },
-    {
-      "source": "/admin/projects",
-      "destination": "/frontend/admin-projects.html"
-    },
-    {
-      "source": "/admin/events",
-      "destination": "/frontend/admin-events.html"
-    },
-    {
-      "source": "/admin/sliders",
-      "destination": "/frontend/admin-sliders.html"
-    },
-    {
-      "source": "/",
-      "destination": "/frontend/nomination_form.html"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/frontend/$1"
     }
   ],
   "headers": [
