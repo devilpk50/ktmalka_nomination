@@ -3,15 +3,15 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index" },
-    { "source": "/admin/login", "destination": "/admin-login.html" },
-    { "source": "/admin/members", "destination": "/admin-members.html" },
-    { "source": "/admin/contacts", "destination": "/admin-contacts.html" },
-    { "source": "/admin/newsletter", "destination": "/admin-newsletter.html" },
-    { "source": "/admin/menu", "destination": "/admin-menu.html" },
-    { "source": "/admin/pages", "destination": "/admin-pages.html" },
-    { "source": "/admin/projects", "destination": "/admin-projects.html" },
-    { "source": "/admin/events", "destination": "/admin-events.html" },
-    { "source": "/admin/sliders", "destination": "/admin-sliders.html" }
+    { "source": "/admin/login", "destination": "/admin-login" },
+    { "source": "/admin/members", "destination": "/admin-members" },
+    { "source": "/admin/contacts", "destination": "/admin-contacts" },
+    { "source": "/admin/newsletter", "destination": "/admin-newsletter" },
+    { "source": "/admin/menu", "destination": "/admin-menu" },
+    { "source": "/admin/pages", "destination": "/admin-pages" },
+    { "source": "/admin/projects", "destination": "/admin-projects" },
+    { "source": "/admin/events", "destination": "/admin-events" },
+    { "source": "/admin/sliders", "destination": "/admin-sliders" }
   ],
   "headers": [
     {
