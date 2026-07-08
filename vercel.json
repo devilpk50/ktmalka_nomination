@@ -1,62 +1,62 @@
 {
   "version": 2,
   "cleanUrls": true,
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/index.js"
+      "source": "/api/(.*)",
+      "destination": "/api/index.js"
     },
     {
-      "src": "/admin",
-      "dest": "/frontend/admin.html"
+      "source": "/admin",
+      "destination": "/frontend/admin.html"
     },
     {
-      "src": "/admin/",
-      "dest": "/frontend/admin.html"
+      "source": "/admin/",
+      "destination": "/frontend/admin.html"
     },
     {
-      "src": "/admin/login",
-      "dest": "/frontend/admin-login.html"
+      "source": "/admin/login",
+      "destination": "/frontend/admin-login.html"
     },
     {
-      "src": "/admin/members",
-      "dest": "/frontend/admin-members.html"
+      "source": "/admin/members",
+      "destination": "/frontend/admin-members.html"
     },
     {
-      "src": "/admin/contacts",
-      "dest": "/frontend/admin-contacts.html"
+      "source": "/admin/contacts",
+      "destination": "/frontend/admin-contacts.html"
     },
     {
-      "src": "/admin/newsletter",
-      "dest": "/frontend/admin-newsletter.html"
+      "source": "/admin/newsletter",
+      "destination": "/frontend/admin-newsletter.html"
     },
     {
-      "src": "/admin/menu",
-      "dest": "/frontend/admin-menu.html"
+      "source": "/admin/menu",
+      "destination": "/frontend/admin-menu.html"
     },
     {
-      "src": "/admin/pages",
-      "dest": "/frontend/admin-pages.html"
+      "source": "/admin/pages",
+      "destination": "/frontend/admin-pages.html"
     },
     {
-      "src": "/admin/projects",
-      "dest": "/frontend/admin-projects.html"
+      "source": "/admin/projects",
+      "destination": "/frontend/admin-projects.html"
     },
     {
-      "src": "/admin/events",
-      "dest": "/frontend/admin-events.html"
+      "source": "/admin/events",
+      "destination": "/frontend/admin-events.html"
     },
     {
-      "src": "/admin/sliders",
-      "dest": "/frontend/admin-sliders.html"
+      "source": "/admin/sliders",
+      "destination": "/frontend/admin-sliders.html"
     },
     {
-      "src": "/",
-      "dest": "/frontend/nomination_form.html"
+      "source": "/",
+      "destination": "/frontend/nomination_form.html"
     },
     {
-      "src": "/(.*)",
-      "dest": "/frontend/$1"
+      "source": "/(.*)",
+      "destination": "/frontend/$1"
     }
   ],
   "headers": [
