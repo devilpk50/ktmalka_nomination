@@ -11,7 +11,7 @@
     { "source": "/admin/pages", "destination": "/admin-pages.html" },
     { "source": "/admin/projects", "destination": "/admin-projects.html" },
     { "source": "/admin/events", "destination": "/admin-events.html" },
-    { "source": "/admin/sliders", "destination": "/admin-sliders.html" }
+    { "source": "/admin/sliders", "destination": "/admin-sliders" }
   ],
   "headers": [
     {
