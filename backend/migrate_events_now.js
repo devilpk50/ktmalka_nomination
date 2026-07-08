@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { sql } = require('@vercel/postgres');
+const { sql } = require('./db');
 
 async function migrate() {
     try {

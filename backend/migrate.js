@@ -1,6 +1,6 @@
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env.local') });
-const { sql } = require('@vercel/postgres');
+const { sql } = require('./db');
 
 async function run() {
     try {

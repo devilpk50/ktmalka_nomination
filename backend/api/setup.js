@@ -1,4 +1,4 @@
-const { sql } = require('@vercel/postgres');
+const { sql } = require('../db');
 
 module.exports = async (req, res) => {
   // Add simple protection so others can't easily spam or wipe the database

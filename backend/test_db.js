@@ -1,1 +1,1 @@
-const { sql } = require('@vercel/postgres'); sql\INSERT INTO projects (title, date, description, category, status, image_url, is_signature) VALUES ('Test Project', 'Test', 'Desc', 'Cat', 'Upcoming', '', false) RETURNING *;\.then(res => console.log(res)).catch(err => console.error(err));
+const { sql } = require('./db'); sql\INSERT INTO projects (title, date, description, category, status, image_url, is_signature) VALUES ('Test Project', 'Test', 'Desc', 'Cat', 'Upcoming', '', false) RETURNING *;\.then(res => console.log(res)).catch(err => console.error(err));

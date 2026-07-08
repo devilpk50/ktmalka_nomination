@@ -1,4 +1,4 @@
-const { sql } = require('@vercel/postgres');
+const { sql } = require('../db');
 
 const ADMIN_USER = process.env.ADMIN_USER || 'nomination';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'Ktm@lka26';
