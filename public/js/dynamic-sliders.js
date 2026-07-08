@@ -45,16 +45,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                 buttonsHtml += `</div>`;
             }
 
-            item.innerHTML = `
-                <div class="carousel-image" style="background-image: url('${slider.image_url}'); background-position: center; background-size: cover; background-repeat: no-repeat;"></div>
-                <div class="carousel-caption d-flex flex-column justify-content-center h-100">
+            let textWrapperHtml = '';
+            if (slider.title || slider.tagline) {
+                textWrapperHtml = `
                     <div class="hero-text-wrapper">
-                        <h1 class="hero-headline">${slider.title || ''}</h1>
-                        ${slider.title && slider.tagline ? '<div class="hero-tagline-divider"></div>' : ''}
-                        <p class="hero-tagline">${slider.tagline || ''}</p>
+                        ${slider.title ? `<h1 class="hero-headline">${slider.title}</h1>` : ''}
+                        ${(slider.title && slider.tagline) ? '<div class="hero-tagline-divider"></div>' : ''}
+                        ${slider.tagline ? `<p class="hero-tagline">${slider.tagline}</p>` : ''}
                     </div>
+                `;
+            }
+
+            let captionHtml = '';
+            if (textWrapperHtml || buttonsHtml) {
+                captionHtml = `
+                <div class="carousel-caption d-flex flex-column justify-content-center h-100">
+                    ${textWrapperHtml}
                     ${buttonsHtml}
                 </div>
+                `;
+            }
+
+            item.innerHTML = `
+                <div class="carousel-image" style="background-image: url('${slider.image_url}'); background-position: center; background-size: cover; background-repeat: no-repeat;"></div>
+                ${captionHtml}
             `;
             innerContainer.appendChild(item);
         });
